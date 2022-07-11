@@ -87,16 +87,28 @@ def rollDice():
     die2 = random.randint(1,6)
     return (die1 + die2)
 
+def playerIDString(player):
+    return(str(player.history[0])+'_'+str(player.history[1]))   # i.e. "1_1x"
+
 def dumpCSV():
     f = open("craps.csv", 'w')  
     for p in players:
-        f.write(str(p.history[0])+'_'+str(p.history[1])+',')    # i.e. "1_1x"
+        f.write(playerIDString(p))
     f.write('\n')
     for i in range(2,TOTAL_ROLLS):    # write rows out as columns to avoid Excel 256 column limit
         for p in players:
             f.write(str(p.history[i])+',')
         f.write('\n')
     f.close()
+
+def minMaxBank(player):
+    min_bank =  1e6
+    max_bank = -1e6
+    for i in range(2,TOTAL_ROLLS):  # skip configuration cells
+        min_bank = min(min_bank, player.history[i])
+        max_bank = max(max_bank, player.history[i])
+    print(playerIDString(player), min_bank, max_bank)
+
 
 
 #
@@ -128,12 +140,15 @@ while rolls < TOTAL_ROLLS:
         point = None
         shooter += 1  
 
-#print(column_labels)
-#print(throw_history)
-#print(p1.history)
 
 #
 # Write out to .csv file
 #
-
 dumpCSV()
+
+
+# 
+# Analysis
+#
+for p in players:
+    minMaxBank(p)
