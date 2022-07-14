@@ -25,7 +25,8 @@ class player():
         assert odds in ("NO", "1x", "2x", "345x", "10x")
         self.max_bets_riding = max_bets_riding
         self.odds = odds
-        self.bank = 0
+        self.bank_come = 0
+        self.bank_odds = 0
         self.history = [self.max_bets_riding, self.odds] # initialize history with player configuration
         self.place_bet = [0] * (MAX_THROW+1)        # include all dice rolls 0-12 but only use place numbers
         self.odds_bet  = [0] * (MAX_THROW+1)
@@ -57,28 +58,28 @@ class player():
     def payTable(self, throw):
         place_bets_before_roll = sum(1 for i in self.place_bet if i)
         if throw in CRAPS:
-            self.bank -= self.come_bet              # lose come bet
+            self.bank_come -= self.come_bet              # lose come bet
         if throw in SVN11:
-            self.bank += self.come_bet              # pay even money bet
+            self.bank_come += self.come_bet              # pay even money bet
         if throw in POINTS:
             # bet off and on if come bet placed
-            self.bank += self.place_bet[throw]      # pay even money bet
-            self.bank += int(2 * self.odds_bet[throw]     if (throw == 4 or throw == 10) else \
-                             3 * self.odds_bet[throw] / 2 if (throw == 5 or throw == 9)  else \
-                             6 * self.odds_bet[throw] / 5)  # throw == 6 or throw == 8
+            self.bank_come += self.place_bet[throw]      # pay even money bet
+            self.bank_odds += int(2 * self.odds_bet[throw]     if (throw == 4 or throw == 10) else \
+                                  3 * self.odds_bet[throw] / 2 if (throw == 5 or throw == 9)  else \
+                                  6 * self.odds_bet[throw] / 5)  # throw == 6 or throw == 8
             self.odds_bet[throw] = 0                # remove odds
             self.place_bet[throw] = self.come_bet   # make new bet if come bet placed
             if self.place_bet[throw]: self.placeOddsBet(throw)  # place odds on bet 
         if point and throw == 7:        # shooter out, clear table
-            self.bank -= sum(i for i in self.place_bet)
-            self.bank -= sum(i for i in self.odds_bet)
+            self.bank_come -= sum(i for i in self.place_bet)
+            self.bank_odds -= sum(i for i in self.odds_bet)
             self.place_bet = [0] * (MAX_THROW+1)
             self.odds_bet  = [0] * (MAX_THROW+1)
         self.come_bet = 0               # no new action until new bet placed
-        self.history.append(self.bank)  # record bank balance 
+        self.history.append((self.bank_come, self.bank_odds))  # record bank balance 
 
         # print debugging
-        # print("%1d (%1d) %4s %1d %6d" % (self.max_bets_riding, place_bets_before_roll, self.odds, throw, self.bank), self.place_bet, self.odds_bet)
+        # print("%1d (%1d) %4s %1d %6d %6d" % (self.max_bets_riding, place_bets_before_roll, self.odds, throw, self.bank_come, self.bank_odds), self.place_bet, self.odds_bet)
 
 
 
@@ -113,9 +114,11 @@ def minMaxBank(player):
     min_bank =  1e6
     max_bank = -1e6
     for i in range(2,TOTAL_ROLLS):  # skip configuration cells
-        min_bank = min(min_bank, player.history[i])
-        max_bank = max(max_bank, player.history[i])
-    print(playerIDString(player), min_bank, max_bank)
+        min_bank_come = min(min_bank, player.history[i][0])
+        max_bank_come = max(max_bank, player.history[i][0])
+        min_bank_odds = min(min_bank, player.history[i][1])
+        max_bank_odds = max(max_bank, player.history[i][1])
+    print(playerIDString(player), min_bank_come, max_bank_come, min_bank_odds, max_bank_odds)
 
 def shooterPointsMadeLost(shooter_rolls):
     points = []
