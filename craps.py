@@ -1,8 +1,17 @@
 #
 # Bankroll Accounting
-#   The player's bank is what he holds on the rail + any bets in action,
-#   as the bets can be removed at any time. Once there is a loss the bet
-#   is removed from the bankroll.
+#   The player's bankroll is what he holds on the rail + any bets on the table.
+#   Once there is a loss the bet is removed from the bankroll.
+#   
+#   Separate bankrolls are tracked for come bets and odds bet.
+#   Over time, the come bankroll should decrease at the rate of the house advantage
+#   and the odds bankroll should remain constant.
+#
+#   A record is kept of the balance of each bankroll, updated after every roll.
+#   player.history[] = [(max bets riding, odds), (roll_bank_come roll 1, roll_bank_odds roll 1, shooter_bank_come roll 1, shooter_bank_odds roll 1), ...]
+#
+#   A record is also kept of the bankroll balance on a per-shooter basis.
+#   It is zero'd before each shooter and updated after every roll of that shooter.
 #
 #
 #
@@ -11,7 +20,7 @@
 
 import random
 
-TOTAL_ROLLS = 10000
+TOTAL_ROLLS = 100
 BET_AMOUNT  = 10
 POINTS      = (4,5,6,8,9,10)
 CRAPS       = (2,3,12)
@@ -25,16 +34,18 @@ class player():
         assert odds in ("NO", "1x", "2x", "345x", "10x")
         self.max_bets_riding = max_bets_riding
         self.odds = odds
-        self.bank_come = 0
-        self.bank_odds = 0
-        self.history = [self.max_bets_riding, self.odds] # initialize history with player configuration
-        self.place_bet = [0] * (MAX_THROW+1)        # include all dice rolls 0-12 but only use place numbers
+        self.roll_bank_come = 0
+        self.roll_bank_odds = 0
+        self.shooter_bank_come = 0
+        self.shooter_bank_odds = 0
+        self.history = [(self.max_bets_riding, self.odds)]  # initialize history with player configuration
+        self.place_bet = [0] * (MAX_THROW+1)                # include all dice rolls 0-12 in list but only use place numbers
         self.odds_bet  = [0] * (MAX_THROW+1)
         self.come_bet  = 0
 
     def makeComeBet(self):
         assert BET_AMOUNT == 10
-        if self.max_bets_riding > sum(1 for i in self.place_bet if i):   # fewer than max_bets_riding
+        if self.max_bets_riding > sum(1 for i in self.place_bet if i):   # place bet if fewer than max_bets_riding
             self.come_bet = BET_AMOUNT
     
     def placeOddsBet(self, throw):
@@ -58,28 +69,32 @@ class player():
     def payTable(self, throw):
         place_bets_before_roll = sum(1 for i in self.place_bet if i)
         if throw in CRAPS:
-            self.bank_come -= self.come_bet              # lose come bet
+            self.roll_bank_come    -= self.come_bet                # lose come bet
+            self.shooter_bank_come -= self.come_bet                # lose come bet
         if throw in SVN11:
-            self.bank_come += self.come_bet              # pay even money bet
+            self.roll_bank_come    += self.come_bet                # pay even money bet
+            self.shooter_bank_come += self.come_bet                # pay even money bet
         if throw in POINTS:
             # bet off and on if come bet placed
-            self.bank_come += self.place_bet[throw]      # pay even money bet
-            self.bank_odds += int(2 * self.odds_bet[throw]     if (throw == 4 or throw == 10) else \
-                                  3 * self.odds_bet[throw] / 2 if (throw == 5 or throw == 9)  else \
-                                  6 * self.odds_bet[throw] / 5)  # throw == 6 or throw == 8
+            self.roll_bank_come    += self.place_bet[throw]     # pay even money bet
+            self.shooter_bank_come += self.place_bet[throw]
+            self.roll_bank_odds    += oddsPayout(self.odds_bet[throw])
+            self.shooter_bank_odds += oddsPayout(self.odds_bet[throw])
             self.odds_bet[throw] = 0                # remove odds
             self.place_bet[throw] = self.come_bet   # make new bet if come bet placed
             if self.place_bet[throw]: self.placeOddsBet(throw)  # place odds on bet 
         if point and throw == 7:        # shooter out, clear table
-            self.bank_come -= sum(i for i in self.place_bet)
-            self.bank_odds -= sum(i for i in self.odds_bet)
+            self.roll_bank_come    -= sum(i for i in self.place_bet)
+            self.shooter_bank_come -= sum(i for i in self.place_bet)
+            self.roll_bank_odds    -= sum(i for i in self.odds_bet)
+            self.shooter_bank_odds -= sum(i for i in self.odds_bet)
             self.place_bet = [0] * (MAX_THROW+1)
             self.odds_bet  = [0] * (MAX_THROW+1)
         self.come_bet = 0               # no new action until new bet placed
-        self.history.append((self.bank_come, self.bank_odds))  # record bank balance 
+        self.history.append((self.roll_bank_come, self.roll_bank_odds, self.shooter_bank_come, self.shooter_bank_odds))  # record bank balances
 
         # print debugging
-        # print("%1d (%1d) %4s %1d %6d %6d" % (self.max_bets_riding, place_bets_before_roll, self.odds, throw, self.bank_come, self.bank_odds), self.place_bet, self.odds_bet)
+        # print("%1d (%1d) %4s %1d %6d %6d" % (self.max_bets_riding, place_bets_before_roll, self.odds, throw, self.roll_bank_come, self.roll_bank_odds), self.place_bet, self.odds_bet)
 
 
 
@@ -88,25 +103,41 @@ def rollDice():
     die2 = random.randint(1,6)
     return (die1 + die2)
 
+def oddsPayout(bet):
+    odds_payout = int(2 * bet     if (throw == 4 or throw == 10) else \
+                      3 * bet / 2 if (throw == 5 or throw == 9)  else \
+                      6 * bet / 5)  # throw == 6 or throw == 8
+    return (odds_payout)
+
 def playerIDString(player):
-    return(str(player.history[0])+'_'+str(player.history[1]))   # i.e. "1_1x"
+    return(str(player.history[0][0])+'_'+str(player.history[0][1]))   # i.e. "1_1x"
 
 def dumpCSV():
+    """1_NO come, 1_NO come, 1_1x come, 1_1x come, ..., 1_NO odds, 1_NO odds, 1_1x odds, 1_1x odds, ..., shooter_1, shooter_2, ..., shooter_max"""
+    """roll_bank_come, shooter_bank_come, roll_bank_come, shooter_bank_come, ..., roll_bank_odds, shooter_bank_odds, roll_bank_odds, shooter_bank_odds, ..., roll 1   , roll 1   , ..., roll 1"""
     f = open("craps.csv", 'w')  
     for p in players:
-        f.write("%s," % playerIDString(p))
+        f.write("%s come,%s come," % (playerIDString(p), playerIDString(p)))
+    for p in players:
+        f.write("%s odds,%s odds," % (playerIDString(p), playerIDString(p)))
+
     for i in range(len(shooter_history)):
         f.write("shooter_%d," % (i+1))
+
     f.write('\n')
-    for i in range(2,TOTAL_ROLLS):      # write rows out as columns to avoid Excel 256 column limit
-        for p in players:               # players bankroll at each roll of the dice
-            f.write(str(p.history[i])+',')
+    for i in range(1,TOTAL_ROLLS):      # write rows out as columns to avoid Excel 256 column limit
+        for p in players:               # players come bankroll at each roll of the dice
+            f.write("%d,%d," % (p.history[i][0], p.history[i][2]))
+        for p in players:               # players odds bankroll at each roll of the dice
+            f.write("%d,%d," % (p.history[i][1], p.history[i][3]))
+
         for s in shooter_history:       # shooter's rolls in order
-            if (i-2) < len(s):
-                f.write("%d," % s[i-2])
-            elif (i-2) == len(s):       # summarize points made and lost
-                f.write("%d/%d," % shooterPointsMadeLost(s))
+            if (i-1) < len(s):
+                f.write("%d," % s[i-1])
+            elif (i-1) == len(s):       # summarize points made and lost
+                f.write("(%d %d)," % shooterPointsMadeLost(s))
             else: f.write(',')          # skip cell if shooter has already 7'd out
+
         f.write('\n')
     f.close()
 
@@ -114,11 +145,11 @@ def minMaxBank(player):
     min_bank =  1e6
     max_bank = -1e6
     for i in range(2,TOTAL_ROLLS):  # skip configuration cells
-        min_bank_come = min(min_bank, player.history[i][0])
-        max_bank_come = max(max_bank, player.history[i][0])
-        min_bank_odds = min(min_bank, player.history[i][1])
-        max_bank_odds = max(max_bank, player.history[i][1])
-    print(playerIDString(player), min_bank_come, max_bank_come, min_bank_odds, max_bank_odds)
+        min_roll_bank_come = min(min_bank, player.history[i][0])
+        max_roll_bank_come = max(max_bank, player.history[i][0])
+        min_roll_bank_odds = min(min_bank, player.history[i][1])
+        max_roll_bank_odds = max(max_bank, player.history[i][1])
+    print(playerIDString(player), min_roll_bank_come, max_roll_bank_come, min_roll_bank_odds, max_roll_bank_odds)
 
 def shooterPointsMadeLost(shooter_rolls):
     points = []
@@ -170,22 +201,26 @@ while rolls < TOTAL_ROLLS:
     throw_history.append(throw)
     shooter_rolls.append(throw)
     rolls += 1
-    for p in players: p.payTable(throw)  
+    for p in players:
+        p.payTable(throw)  
     if throw in POINTS and not point:   # shooter has a point now
         point = throw
     if throw == 7 and point:            # shooter out
         point = None
         shooter_history.append(shooter_rolls)
         shooter_rolls = []
+        for p in players:
+            p.shooter_bank_come = 0
+            p.shooter_bank_odds = 0
 
 
 #
 # Write out to .csv file
 #
-# dumpCSV()
+dumpCSV()
 
 
 # 
 # Analysis
 #
-print(rollLengthHistogram(shooter_history))
+# print(rollLengthHistogram(shooter_history))
