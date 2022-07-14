@@ -93,11 +93,19 @@ def playerIDString(player):
 def dumpCSV():
     f = open("craps.csv", 'w')  
     for p in players:
-        f.write(playerIDString(p))
+        f.write("%s," % playerIDString(p))
+    for i in range(len(shooter_history)):
+        f.write("shooter_%d," % (i+1))
     f.write('\n')
-    for i in range(2,TOTAL_ROLLS):    # write rows out as columns to avoid Excel 256 column limit
-        for p in players:
+    for i in range(2,TOTAL_ROLLS):      # write rows out as columns to avoid Excel 256 column limit
+        for p in players:               # players bankroll at each roll of the dice
             f.write(str(p.history[i])+',')
+        for s in shooter_history:       # shooter's rolls in order
+            if (i-2) < len(s):
+                f.write("%d," % s[i-2])
+            elif (i-2) == len(s):       # summarize points made and lost
+                f.write("%d/%d," % shooterPointsMadeLost(s))
+            else: f.write(',')          # skip cell if shooter has already 7'd out
         f.write('\n')
     f.close()
 
@@ -109,6 +117,31 @@ def minMaxBank(player):
         max_bank = max(max_bank, player.history[i])
     print(playerIDString(player), min_bank, max_bank)
 
+def shooterPointsMadeLost(shooter_rolls):
+    points = []
+    made = 0
+    lost = 0
+    for i in range(len(shooter_rolls)):
+        throw = shooter_rolls[i]
+        if throw in POINTS:
+            if throw in points:
+                made += 1
+            else:
+                points.append(throw)
+    lost = len(points)  # points rolled but not made
+    return (made, lost)
+
+def rollLengthHistogram(shooter_history): # return list of number of rolls made of length n, starting with 1 rolls (excluding final 7-out)
+    h = [0] * 1000      # assume no rolls longer than 1000
+    for s in shooter_history:
+        h[len(s)] += 1
+    for i in range(len(h)):
+        if h[i]: longest_roll = i
+    h = h[2:longest_roll+1]        # trim list - start at 2 rolls (including final 7-out) and end at final entry, results in index being number of rolls excluding final 7-out
+    return h
+
+
+
 
 
 #
@@ -117,10 +150,10 @@ def minMaxBank(player):
 
 random.seed(314)
 rolls   = 0
-shooter = 1
 point   = None
-column_labels = ["MAX POINTS", "ODDS"] + [i for i in range(1, TOTAL_ROLLS+1)]
 throw_history = [0,0]
+shooter_rolls = []
+shooter_history = []
 
 
 # all possible player configurations
@@ -132,23 +165,24 @@ while rolls < TOTAL_ROLLS:
     for p in players: p.makeComeBet()    
     throw = rollDice()
     throw_history.append(throw)
+    shooter_rolls.append(throw)
     rolls += 1
     for p in players: p.payTable(throw)  
     if throw in POINTS and not point:   # shooter has a point now
         point = throw
     if throw == 7 and point:            # shooter out
         point = None
-        shooter += 1  
+        shooter_history.append(shooter_rolls)
+        shooter_rolls = []
 
 
 #
 # Write out to .csv file
 #
-dumpCSV()
+# dumpCSV()
 
 
 # 
 # Analysis
 #
-for p in players:
-    minMaxBank(p)
+print(rollLengthHistogram(shooter_history))
