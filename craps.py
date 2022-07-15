@@ -26,12 +26,13 @@ POINTS      = (4,5,6,8,9,10)
 CRAPS       = (2,3,12)
 SVN11       = (7,11)
 MAX_THROW   = 12
+ALL_ODDS    = ("NO", "1x", "2x", "345x", "10x")
 
 
 class player():
     def __init__(self, max_bets_riding, odds):
         assert (max_bets_riding >= 1) and (max_bets_riding <= 7)
-        assert odds in ("NO", "1x", "2x", "345x", "10x")
+        assert odds in ALL_ODDS
         self.max_bets_riding = max_bets_riding
         self.odds = odds
         self.roll_bank_come = 0
@@ -109,35 +110,42 @@ def oddsPayout(bet):
                       6 * bet / 5)  # throw == 6 or throw == 8
     return (odds_payout)
 
-def playerIDString(player):
-    return(str(player.history[0][0])+'_'+str(player.history[0][1]))   # i.e. "1_1x"
+def playerComeBets(player):
+    return (player.history[0][0])       # one of (1, 2, 3, 4, 5, 6, 7)
 
-def dumpCSV():
+def playerOdds(player):
+    return (player.history[0][1])       # one of ("NO", "1x", "2x", "345x", "10x")
+
+def playerIDString(player):
+    return(str(playerComeBets(player))+'_'+str(playerOdds(player)))   # i.e. "1_1x"
+
+def dumpCSV(come_bets=(1,2,3,4,5,6,7), odds=ALL_ODDS):
     """1_NO come, 1_NO come, 1_1x come, 1_1x come, ..., 1_NO odds, 1_NO odds, 1_1x odds, 1_1x odds, ..., shooter_1, shooter_2, ..., shooter_max"""
     """roll_bank_come, shooter_bank_come, roll_bank_come, shooter_bank_come, ..., roll_bank_odds, shooter_bank_odds, roll_bank_odds, shooter_bank_odds, ..., roll 1   , roll 1   , ..., roll 1"""
     f = open("craps.csv", 'w')  
     for p in players:
-        f.write("%s come,%s come," % (playerIDString(p), playerIDString(p)))
+        if playerComeBets(p) in come_bets and playerOdds(p) in odds:
+            f.write("\"%s come\rroll\",\"%s come\nshooter\"," % (playerIDString(p), playerIDString(p)))
     for p in players:
-        f.write("%s odds,%s odds," % (playerIDString(p), playerIDString(p)))
-
+        if playerComeBets(p) in come_bets and playerOdds(p) in odds:
+            f.write("\"%s come\rroll\",\"%s come\nshooter\"," % (playerIDString(p), playerIDString(p)))
     for i in range(len(shooter_history)):
         f.write("shooter_%d," % (i+1))
-
     f.write('\n')
+
     for i in range(1,TOTAL_ROLLS):      # write rows out as columns to avoid Excel 256 column limit
         for p in players:               # players come bankroll at each roll of the dice
-            f.write("%d,%d," % (p.history[i][0], p.history[i][2]))
+            if playerComeBets(p) in come_bets and playerOdds(p) in odds:
+                f.write("%d,%d," % (p.history[i][0], p.history[i][2]))
         for p in players:               # players odds bankroll at each roll of the dice
-            f.write("%d,%d," % (p.history[i][1], p.history[i][3]))
-
+            if playerComeBets(p) in come_bets and playerOdds(p) in odds:
+                f.write("%d,%d," % (p.history[i][1], p.history[i][3]))
         for s in shooter_history:       # shooter's rolls in order
             if (i-1) < len(s):
                 f.write("%d," % s[i-1])
             elif (i-1) == len(s):       # summarize points made and lost
                 f.write("(%d %d)," % shooterPointsMadeLost(s))
             else: f.write(',')          # skip cell if shooter has already 7'd out
-
         f.write('\n')
     f.close()
 
@@ -217,7 +225,7 @@ while rolls < TOTAL_ROLLS:
 #
 # Write out to .csv file
 #
-dumpCSV()
+dumpCSV((7,), ("10x",))
 
 
 # 
