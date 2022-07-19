@@ -20,7 +20,7 @@
 
 import random
 
-TOTAL_ROLLS = 100
+TOTAL_ROLLS = 1000000
 BET_AMOUNT  = 10
 POINTS      = (4,5,6,8,9,10)
 CRAPS       = (2,3,12)
@@ -173,14 +173,32 @@ def shooterPointsMadeLost(shooter_rolls):
     lost = len(points)  # points rolled but not made
     return (made, lost)
 
-def rollLengthHistogram(shooter_history): # return list of number of rolls made of length n, starting with 1 rolls (excluding final 7-out)
-    h = [0] * 1000      # assume no rolls longer than 1000
-    for s in shooter_history:
+def rollLengthHistogram(shooter_history): # return list of number of rolls made of length n, starting with 2 rolls (point made + 7-out)
+    h = [0] * 1000              # assume no rolls longer than 1000
+    for s in shooter_history:   # increment histogram bin equal to the length of this shooter's roll
         h[len(s)] += 1
-    for i in range(len(h)):
+    for i in range(len(h)):     # find the furthest histogram bin (= longest roll)
         if h[i]: longest_roll = i
-    h = h[2:longest_roll+1]        # trim list - start at 2 rolls (including final 7-out) and end at final entry, results in index being number of rolls excluding final 7-out
+    h = h[0:longest_roll+1]     # trim list at longest roll, results in index being number of rolls
     return h
+
+def pointsMadeHistogram(shooter_history):   # return list of number of points made, assume continuous come bets
+    h = [0] * 1000                          # assume no more than 1000 points made
+    for s in shooter_history:
+        point = [False] * (max(POINTS)+1)   # list to store current points we are shooting for
+        made = 0                            # points made by this shooter
+        for throw in s:
+            if throw in POINTS:
+                if point[throw]:            # already threw this point, now we made it
+                    made += 1
+                else:                       # first time we threw this point
+                    point[throw] = True
+        h[made] += 1                        # increment histogram bin of this many points made
+    for i in range(len(h)):                 # find the furthest histogram bin (= most points made)
+        if h[i]: most_points = i
+    h = h[0:most_points+1]                  # trim list at most points made, results in index being points made
+    return h
+
 
 
 
@@ -189,6 +207,8 @@ def rollLengthHistogram(shooter_history): # return list of number of rolls made 
 #
 # Main
 #
+
+options = ("GENERATE_ROLLS_ONLY",)
 
 random.seed(314)
 rolls   = 0
@@ -200,16 +220,18 @@ shooter_history = []
 
 # all possible player configurations
 players = []
-for i in range(1,8):
-    players += [player(i, "NO"), player(i, "1x"), player(i, "2x"), player(i, "345x"), player(i, "10x")]
+if "GENERATE_ROLLS_ONLY" not in options:        # if only tracking rolls, don't generate and track players
+    for i in range(1,8):
+        players += [player(i, "NO"), player(i, "1x"), player(i, "2x"), player(i, "345x"), player(i, "10x")]
 
 while rolls < TOTAL_ROLLS:
-    for p in players: p.makeComeBet()    
+    if rolls % 10000 == 0: print(rolls)  
     throw = rollDice()
     throw_history.append(throw)
     shooter_rolls.append(throw)
     rolls += 1
     for p in players:
+        p.makeComeBet()  
         p.payTable(throw)  
     if throw in POINTS and not point:   # shooter has a point now
         point = throw
@@ -225,10 +247,11 @@ while rolls < TOTAL_ROLLS:
 #
 # Write out to .csv file
 #
-dumpCSV((7,), ("10x",))
+# dumpCSV((7,), ("10x",))
 
 
 # 
 # Analysis
 #
-# print(rollLengthHistogram(shooter_history))
+print(rollLengthHistogram(shooter_history))
+print(pointsMadeHistogram(shooter_history))
