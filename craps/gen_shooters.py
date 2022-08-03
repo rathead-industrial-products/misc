@@ -26,7 +26,7 @@ def rollDice():
 # Main
 #
 
-if len(sys.argv):
+if len(sys.argv) > 1:
     total_shooters = int(sys.argv[1])
 else:
     total_shooters = TOTAL_SHOOTERS

@@ -22,7 +22,17 @@ def get_shooters():
     return (tuple(shooters))
 
 def meanMedianMode(data):
-    return (statistics.mean(data), statistics.median(data), statistics.mode(data))
+    '''statistics.mode (version < 3.8) will generate an exception if no unique mode found.'''
+    mode = max([p[0] for p in statistics._counts(data)]) # returns largest if no unique mode
+    return (statistics.mean(data), statistics.median(data), mode)
+
+def histogram(data):
+    '''Given a list of non-negative integers, return a tuple of the number of occurances of each integer.'''
+    largest_int = max(data)     # number of bins in histogram
+    hist = [0] * (largest_int+1)
+    for d in data:
+        hist[d] += 1            # increment bin
+    return (tuple(hist))
 
 def rollLength(shooters):
     n_rolls = [len(s) for s in shooters]
@@ -48,7 +58,11 @@ def pointsMade(shooters):    # assume continuous come line betting
 
 shooters = get_shooters()
 
-# print(shooters)
-print(rollLength(shooters)[1])
-print(pointsMade(shooters)[1])
+# print(shooters)   # source data from file
+(rolls_per_shooter, roll_stats) = rollLength(shooters)
+(points_made_per_shooter, points_made_stats) = pointsMade(shooters)
+rps_hist = histogram(rolls_per_shooter)
+pmps_hist = histogram(points_made_per_shooter)
+print(roll_stats, rps_hist)
+print(points_made_stats, pmps_hist)
 
