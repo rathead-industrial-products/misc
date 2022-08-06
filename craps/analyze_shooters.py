@@ -52,6 +52,24 @@ def pointsMade(shooters):    # assume continuous come line betting
                 points = [False] * MAX_THROW
     return (points_made, meanMedianMode(points_made))
 
+def writeCSV(file_name, data_series=[(),(),()], column_headers= ()):
+    '''Excel columns are limited to 16K and rows to 1M, so data sets are organized by columns to allow the max number of entries.'''
+    '''Data series is a collection of data sets.'''
+    f = open(file_name, 'w')
+    for hdr in column_headers:
+        f.write("%s," % (hdr)) 
+    f.write('\n')
+    n_series = len(data_series)
+    n_rows = 0
+    for series in data_series:
+        n_rows = max(n_rows, len(series))
+    for i in range(n_rows):
+        for s in range(n_series):
+            if i < len(data_series[s]): f.write("%s," % (str(data_series[s][i])))
+            else:                       f.write(",")
+        f.write('\n')
+    f.close()
+
 #
 # Main
 #
@@ -63,6 +81,8 @@ shooters = get_shooters()
 (points_made_per_shooter, points_made_stats) = pointsMade(shooters)
 rps_hist = histogram(rolls_per_shooter)
 pmps_hist = histogram(points_made_per_shooter)
-print(roll_stats, rps_hist)
-print(points_made_stats, pmps_hist)
+#print(roll_stats, rps_hist)
+#print(points_made_stats, pmps_hist)
+
+writeCSV("roll_histogram.csv", (rps_hist, pmps_hist), ("rolls per shooter", "points made per shooter"))
 
