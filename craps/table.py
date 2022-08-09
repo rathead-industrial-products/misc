@@ -160,3 +160,24 @@ class table():
 # Main  --  Unit Test
 #
 
+import unittest
+
+class TestWager(unittest.TestCase):
+    def test_wager_default_odds(self):
+        w = wager()
+        self.assertEqual(w.max_odds, "10x")
+
+    def test_wager_odds_error_check(self):
+        self.assertRaises(Exception, wager, "12x")
+
+class TestTable(unittest.TestCase):
+    def test_table_init(self):
+        t = table()
+        self.assertEqual(t.comeout, True)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
+
+
+
