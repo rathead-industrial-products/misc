@@ -11,7 +11,6 @@ from curses.ascii import CR
 DIE_FACE    = (1,2,3,4,5,6)
 POINTS      = (4,5,6,8,9,10)
 CRAPS       = (2,3,12)
-SVN11       = (7,11)
 MAX_THROW   = 12
 MAX_ODDS    = ("1x", "2x", "345x", "10x")
 
@@ -57,11 +56,11 @@ class wager():
 
     def oddsBet(self, amount, num):
         assert num in POINTS            # must be one of (4,5,6,8,9,10)
-        assert not self.odds[num]       # no existing odds bet
         assert self.place[num]          # must be a current place bet
+        assert not self.odds[num]       # no existing odds bet
         # must be able to evenly pay off 3:2 and 6:5 odds
-        if num == 5 or num == 9: assert amount % 2           
-        if num == 6 or num == 8: assert amount % 5
+        if num == 5 or num == 9: assert not amount % 2           
+        if num == 6 or num == 8: assert not amount % 5
         # odds bet can't exceed max allowed
         if self.max_odds == "1x":  assert amount <= self.place[num]
         if self.max_odds == "2x":  assert amount <= (2 * self.place[num])
@@ -83,7 +82,8 @@ class table():
         self.odds_working_on_comeout = True # place numbers with odds have the odds working on the comeout roll (casino default = False)
         self.odds_off_and_on         = True # when a place number is made with a come bet riding, the odds are paid but not returned (they stay working)
         self.bet    = wager()
-        self.payoff = wager()
+        self.payout = wager()
+        self.shooter_rolls = 0
 
     def roll(self, die1_or_total, die2=None):
         if die2:
@@ -93,6 +93,7 @@ class table():
         else:
             assert die1_or_total >= 1 and die1_or_total <= MAX_THROW
             throw = die1_or_total
+        self.shooter_rolls += 1
         self._action(throw)
 
     def comeBet(self, amount):
@@ -128,7 +129,9 @@ class table():
             if self.comeout and not self.odds_working_on_comeout:
                 for p in POINTS: self.payoff.odds[p] = self.bet.odds(p)
             self.bet.clearAll()
-            self.comeout = True     # even if this was a comeout roll, it's still True
+            if not self.comeout:
+                self.shooter_rolls = 0  # new shooter
+            self.comeout = True         # even if this was a comeout roll, it's still True
 
         if throw in POINTS:    
             # pay any place bets and odds working. Shooter has point if comeout roll.
@@ -141,7 +144,7 @@ class table():
             else:
                 assert self.bet.come >= self.bet.place[throw]                   # odds off and on, verify new bet is >= old bet
             self.payoff.place[throw] = 2 * self.bet.clearPlace[throw]           # pay place bet
-            self.bet.place[throw] = self.bet.clearCome()                        # move come bet to become new place bet
+            self.bet.moveComeToPlace(throw)
 
         if self.comeout:
             if throw == 11:                                                     # winner on comeout, otherwise no action
@@ -163,12 +166,36 @@ class table():
 import unittest
 
 class TestWager(unittest.TestCase):
-    def test_wager_default_odds(self):
+    def test_wager_init(self):
         w = wager()
-        self.assertEqual(w.max_odds, "10x")
+        self.assertEqual(w.max_odds, "10x")         # default odds
+        self.assertRaises(Exception, wager, "12x")  # odds error check
 
-    def test_wager_odds_error_check(self):
-        self.assertRaises(Exception, wager, "12x")
+    def test_wager_comeBet(self):
+        w = wager()
+        self.assertEqual(w.come, None) 
+        w.comeBet(5)
+        self.assertEqual(w.come, 5)
+        self.assertRaises(Exception, w.comeBet, 2)     # come bet already established
+
+    def test_wager_placeBet(self):
+        w = wager()
+        self.assertRaises(Exception, w.placeBet, (5, 1))    # 1 is not a point
+        w.placeBet(5, 6)
+        self.assertRaises(Exception, w.placeBet, (5, 6))    # 6 already established
+
+    def test_wager_oddsBet(self):
+        w = wager()
+        self.assertRaises(Exception, w.oddsBet, (5, 1))     # 1 is not a point
+        self.assertRaises(Exception, w.oddsBet, (5, 6))     # no place bet on 6
+        w.placeBet(5, 6)
+        w.oddsBet(5, 6)
+        self.assertEqual(w.odds[6], 5)
+        self.assertRaises(Exception, w.oddsBet, (5, 6))     # odds bet on 6 already established
+        w.odds[6] = 0
+        self.assertRaises(Exception, w.oddsBet, (2, 6))     # odds bet on 6 must be multiple of 5
+        self.assertRaises(Exception, w.oddsBet, (55, 6))    # odds bet can't exceed 10x place bet
+
 
 class TestTable(unittest.TestCase):
     def test_table_init(self):
