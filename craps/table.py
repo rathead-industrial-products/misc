@@ -86,7 +86,7 @@ class table():
         self.payoff = wager()
 
     def roll(self, die1_or_total, die2=None):
-        if die2:
+        if die2 != None:
             assert die1_or_total in DIE_FACE
             assert die2 in DIE_FACE
             throw = die1_or_total + die2
@@ -175,6 +175,14 @@ class TestTable(unittest.TestCase):
         t = table()
         self.assertEqual(t.comeout, True)
 
+    def test_table_roll(self):
+        t = table()
+        self.assertRaises(Exception, t.roll, 0)     # one die (throw) must be >= 1 and <= 12
+        self.assertRaises(Exception, t.roll, 13)
+        self.assertRaises(Exception, t.roll, 0, 1)  # two die, each die must be 1<= die <=6
+        self.assertRaises(Exception, t.roll, 7, 1)
+        self.assertRaises(Exception, t.roll, 1, 0)
+        self.assertRaises(Exception, t.roll, 1, 7)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
