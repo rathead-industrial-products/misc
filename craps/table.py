@@ -3,11 +3,6 @@
 # Perform the actions of the boxmen.
 #
 
-
-from ctypes.wintypes import POINT
-from curses.ascii import CR
-
-
 DIE_FACE    = (1,2,3,4,5,6)
 POINTS      = (4,5,6,8,9,10)
 CRAPS       = (2,3,12)
