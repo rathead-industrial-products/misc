@@ -12,15 +12,15 @@ MAX_ODDS    = ("1x", "2x", "345x", "10x")
 
 class wager():
     def __init__(self, max_odds="10x"):
-        self.come  = None               # come bet
+        self.come  = 0                  # come bet
         self.place = [0] * MAX_THROW    # place bets. Only (4,5,6,8,9,10) are used
         self.odds  = [0] * MAX_THROW    # odds bets. Only (4,5,6,8,9,10) are used
         assert max_odds in MAX_ODDS
         self.max_odds = max_odds
 
     def _clearPlaceOdds(self, place_or_odds, throw):
-        amount = self.place_or_odds[throw]
-        self.place_or_odds[throw] = 0
+        amount = place_or_odds[throw]
+        place_or_odds[throw] = 0
         return (amount)
 
     def clearPlace(self, throw):
@@ -31,7 +31,7 @@ class wager():
 
     def clearCome(self):
         amount = self.come
-        self.come = None
+        self.come = 0
         return (amount)
 
     def clearAll(self):
@@ -41,7 +41,7 @@ class wager():
         return (amount)
 
     def comeBet(self, amount):
-        assert not self.come        # no existing come bet
+        assert not self.come            # cannot already be a come bet working
         self.come = amount
 
     def placeBet(self, amount, num):
@@ -67,7 +67,7 @@ class wager():
         self.odds[num] = amount
 
     def moveComeToPlace(self, roll):
-        self.placeBet(self.clearCome, roll)
+        self.placeBet(self.clearCome(), roll)
 
 
 class table():
@@ -104,12 +104,25 @@ class table():
         odds  = tuple(self.bet.odds[4:7]  + self.bet.odds[8:11])
         return (come, place, odds)
 
+    def action(self):
+        '''Return the sum off all bets currently on the table.'''
+        (come, place, odds) = self.bets()
+        total = come + sum(place) + sum(odds)
+        return (total)
+
     def payoff(self):
         '''Return everything in the payout in the form (come, (place4, place5, ..., place10), (odds4, odds5, ..., odds10)).'''
         come  = self.payout.come
         place = tuple(self.payout.place[4:7] + self.payout.place[8:11])
         odds  = tuple(self.payout.odds[4:7]  + self.payout.odds[8:11])
         return (come, place, odds)
+
+    def collect(self):
+        '''Return and clear the entire payout.'''
+        (come, place, odds) = self.payoff()
+        total = come + sum(place) + sum(odds)
+        self.payout.clearAll()
+        return (total)
 
     def _correctOdds(self, throw, amount):
         '''Return the correct odds for this amount and the throw.'''
@@ -132,18 +145,18 @@ class table():
             # pay any place bets and odds working. Shooter has point if comeout roll.
             # if the odds are off and on or working on the comeout, the come bet must be the same or greater as the place bet
             # to reuse the same odds bet      
-            self.payoff.odds[throw] = self._correctOdds(self.bet.odds[throw])   # pay odds
+            self.payout.odds[throw] = self._correctOdds(throw, self.bet.odds[throw])   # pay odds
             odds_stay_working = (self.comeout and self.odds_working_on_comeout) or (self.bet.come and self.odds_off_and_on)
             if not odds_stay_working:
-                self.payoff.odds[throw] += self.bet.clearOdds[throw]            # return odds
+                self.payout.odds[throw] += self.bet.clearOdds(throw)            # return odds
             else:
                 assert self.bet.come >= self.bet.place[throw]                   # odds off and on, verify new bet is >= old bet
-            self.payoff.place[throw] = 2 * self.bet.clearPlace[throw]           # pay place bet
+            self.payout.place[throw] = 2 * self.bet.clearPlace(throw)           # pay place bet
             self.bet.moveComeToPlace(throw)
 
         if self.comeout:
             if throw == 11:                                                     # winner on comeout, otherwise no action
-                self.payoff.come = 2 * self.bet.clearCome()
+                self.payout.come = 2 * self.bet.clearCome()
             if throw in CRAPS:                                                  # loser on comeout, otherwise no action
                 self.bet.clearCome()
             if throw in POINTS:
@@ -168,7 +181,7 @@ class TestWager(unittest.TestCase):
 
     def test_wager_comeBet(self):
         w = wager()
-        self.assertEqual(w.come, None) 
+        self.assertEqual(w.come, 0) 
         w.comeBet(5)
         self.assertEqual(w.come, 5)
         self.assertRaises(Exception, w.comeBet, 2)     # come bet already established
@@ -191,6 +204,22 @@ class TestWager(unittest.TestCase):
         self.assertRaises(Exception, w.oddsBet, (2, 6))     # odds bet on 6 must be multiple of 5
         self.assertRaises(Exception, w.oddsBet, (55, 6))    # odds bet can't exceed 10x place bet
 
+    def test_wager_clearCome(self):
+        w = wager()
+        self.assertEqual(w.come, 0)
+        w.comeBet(1)
+        self.assertEqual(w.come, 1)
+        amount = w.clearCome()
+        self.assertEqual(w.come, 0)
+        self.assertEqual(amount, 1)
+
+    def test_wager_moveComeToPlace(self):
+        w = wager()
+        w.comeBet(1)
+        w.moveComeToPlace(4)
+        self.assertEqual(w.come, 0)
+        self.assertEqual(w.place[4], 1)
+
 
 class TestTable(unittest.TestCase):
     def test_table_init(self):
@@ -205,6 +234,14 @@ class TestTable(unittest.TestCase):
         self.assertRaises(Exception, t.roll, 7, 1)
         self.assertRaises(Exception, t.roll, 1, 0)
         self.assertRaises(Exception, t.roll, 1, 7)
+
+    def test_table_bets(self):
+        t = table()
+        (come, place, odds) = t.bets()
+        self.assertEqual(come, 0)
+        self.assertEqual(place, (0,0,0,0,0,0))
+        self.assertEqual(odds, (0,0,0,0,0,0))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
