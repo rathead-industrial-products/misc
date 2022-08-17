@@ -3,11 +3,12 @@
 # Perform the actions of the boxmen.
 #
 
-DIE_FACE    = (1,2,3,4,5,6)
-POINTS      = (4,5,6,8,9,10)
-CRAPS       = (2,3,12)
-MAX_THROW   = 12
-MAX_ODDS    = ("1x", "2x", "345x", "10x")
+DIE_FACE        = (1,2,3,4,5,6)
+POINTS          = (4,5,6,8,9,10)
+CRAPS           = (2,3,12)
+CRAPS_PLUS_11   = (2,3,11,12)
+MAX_THROW       = 12
+MAX_ODDS        = ("1x", "2x", "345x", "10x")
 
 
 class wager():
@@ -66,8 +67,8 @@ class wager():
             if num == 6 or num == 8:  assert amount <= (5 * self.place[num])
         self.odds[num] = amount
 
-    def moveComeToPlace(self, roll):
-        self.placeBet(self.clearCome(), roll)
+    def moveComeToPlace(self, throw):
+        self.placeBet(self.clearCome(), throw)
 
 
 class table():
@@ -104,8 +105,8 @@ class table():
         odds  = tuple(self.bet.odds[4:7]  + self.bet.odds[8:11])
         return (come, place, odds)
 
-    def action(self):
-        '''Return the sum off all bets currently on the table.'''
+    def working(self):
+        '''Return the sum of all bets currently on the table.'''
         (come, place, odds) = self.bets()
         total = come + sum(place) + sum(odds)
         return (total)
@@ -126,20 +127,30 @@ class table():
 
     def _correctOdds(self, throw, amount):
         '''Return the correct odds for this amount and the throw.'''
-        if throw == 4 or throw == 10: return (2 * amount)
-        if throw == 5 or throw == 9:  return ((3 * amount) / 2)
-        if throw == 6 or throw == 8:  return ((6 * amount) / 5)
+        if throw == 4 or throw == 10: return int((2 * amount))
+        if throw == 5 or throw == 9:  return int(((3 * amount) / 2))
+        if throw == 6 or throw == 8:  return int(((6 * amount) / 5))
+
+    def _sevenOut(self):
+        self.bet.clearAll()
+        self.point = None
+        self.comeout = True
+        self.shooter_rolls = 0
 
     def _action(self, throw):
-        # be the boxman
+        # be the boxman 
+        if self.comeout:
+            if throw == 11:                                                     # winner on comeout else no action
+                self.payout.come = 2 * self.bet.clearCome()
+            if throw in CRAPS:                                                  # loser on comeout, otherwise no action
+                self.bet.clearCome()
+
         if throw == 7:
-            self.payoff.come = 2 * self.bet.clearCome()
-            if self.comeout and not self.odds_working_on_comeout:
+            if not self.odds_working_on_comeout:                                # return odds on comeout if not working
                 for p in POINTS: self.payoff.odds[p] = self.bet.odds(p)
-            self.bet.clearAll()
+            self.payout.come = 2 * self.bet.clearCome()           
             if not self.comeout:
-                self.shooter_rolls = 0  # new shooter
-            self.comeout = True         # even if this was a comeout roll, it's still True
+                self._sevenOut()
 
         if throw in POINTS:    
             # pay any place bets and odds working. Shooter has point if comeout roll.
@@ -153,18 +164,12 @@ class table():
                 assert self.bet.come >= self.bet.place[throw]                   # odds off and on, verify new bet is >= old bet
             self.payout.place[throw] = 2 * self.bet.clearPlace(throw)           # pay place bet
             self.bet.moveComeToPlace(throw)
-
-        if self.comeout:
-            if throw == 11:                                                     # winner on comeout, otherwise no action
-                self.payout.come = 2 * self.bet.clearCome()
-            if throw in CRAPS:                                                  # loser on comeout, otherwise no action
-                self.bet.clearCome()
-            if throw in POINTS:
+            if self.point == throw:                                             # shooter made his point
+                self.point = None
+                self.comeout = True
+            elif self.comeout:
                 self.point = throw                                              # comeout roll, shooter has point
-            self.comeout = False
-
-
-
+                self.comeout = False
 
 
 #
