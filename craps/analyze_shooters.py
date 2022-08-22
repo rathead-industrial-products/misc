@@ -30,6 +30,7 @@ def meanMedianMode(data):
 def histogram(data, normalize=False):
     '''Given a list of non-negative integers, return a tuple of the number of occurances of each integer.
        If normalize is True, convert each bin to a percentage of the total number of occurrances. '''
+    DECIMALS = 3
     if not data: return (None)  # return None if empty data set input
     largest_int = max(data)     # number of bins in histogram
     hist = [0] * (largest_int+1)
@@ -37,7 +38,7 @@ def histogram(data, normalize=False):
         hist[d] += 1            # increment bin
     if normalize:
         total = sum(hist)
-        hist = [round(100.0*bin/total, 1) for bin in hist]
+        hist = [round(100.0*bin/total, DECIMALS) for bin in hist]
     return (tuple(hist))
 
 def rollLength(shooters):
@@ -116,9 +117,9 @@ shooters = get_shooters()
 (rolls_per_shooter, roll_stats) = rollLength(shooters)
 (points_made_per_shooter, points_made_stats) = pointsMade(shooters)
 (points_covered_per_shooter, points_covered_stats) = pointsCovered(shooters)
-rps_hist = histogram(rolls_per_shooter)
-pmps_hist = histogram(points_made_per_shooter)
-pcps_hist = histogram(points_covered_per_shooter)
+rps_hist = histogram(rolls_per_shooter, True)
+pmps_hist = histogram(points_made_per_shooter, True)
+pcps_hist = histogram(points_covered_per_shooter, True)
 
 print("rolls per shooter", roll_stats, rps_hist)
 print("points made per shooter", points_made_stats, pmps_hist)
