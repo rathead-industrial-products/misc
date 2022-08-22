@@ -30,6 +30,7 @@ def meanMedianMode(data):
 def histogram(data, normalize=False):
     '''Given a list of non-negative integers, return a tuple of the number of occurances of each integer.
        If normalize is True, convert each bin to a percentage of the total number of occurrances. '''
+    DECIMALS = 3
     if not data: return (None)  # return None if empty data set input
     largest_int = max(data)     # number of bins in histogram
     hist = [0] * (largest_int+1)
@@ -37,7 +38,7 @@ def histogram(data, normalize=False):
         hist[d] += 1            # increment bin
     if normalize:
         total = sum(hist)
-        hist = [round(100.0*bin/total, 1) for bin in hist]
+        hist = [round(100.0*bin/total, DECIMALS) for bin in hist]
     return (tuple(hist))
 
 def rollLength(shooters):

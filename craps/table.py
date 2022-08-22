@@ -3,29 +3,26 @@
 # Perform the actions of the boxmen.
 #
 
-
-from ctypes.wintypes import POINT
-from curses.ascii import CR
-
-
-DIE_FACE    = (1,2,3,4,5,6)
-POINTS      = (4,5,6,8,9,10)
-CRAPS       = (2,3,12)
-MAX_THROW   = 12
-MAX_ODDS    = ("1x", "2x", "345x", "10x")
+DIE_FACE        = (1,2,3,4,5,6)
+POINTS          = (4,5,6,8,9,10)
+CRAPS           = (2,3,12)
+CRAPS_PLUS_11   = (2,3,11,12)
+SVN_11          = (7, 11)
+MAX_THROW       = 12
+MAX_ODDS        = ("1x", "2x", "345x", "10x")
 
 
 class wager():
     def __init__(self, max_odds="10x"):
-        self.come  = None               # come bet
+        self.come  = 0                  # come bet
         self.place = [0] * MAX_THROW    # place bets. Only (4,5,6,8,9,10) are used
         self.odds  = [0] * MAX_THROW    # odds bets. Only (4,5,6,8,9,10) are used
         assert max_odds in MAX_ODDS
         self.max_odds = max_odds
 
     def _clearPlaceOdds(self, place_or_odds, throw):
-        amount = self.place_or_odds[throw]
-        self.place_or_odds[throw] = 0
+        amount = place_or_odds[throw]
+        place_or_odds[throw] = 0
         return (amount)
 
     def clearPlace(self, throw):
@@ -36,7 +33,7 @@ class wager():
 
     def clearCome(self):
         amount = self.come
-        self.come = None
+        self.come = 0
         return (amount)
 
     def clearAll(self):
@@ -46,7 +43,7 @@ class wager():
         return (amount)
 
     def comeBet(self, amount):
-        assert not self.come        # no existing come bet
+        assert not self.come            # cannot already be a come bet working
         self.come = amount
 
     def placeBet(self, amount, num):
@@ -71,8 +68,8 @@ class wager():
             if num == 6 or num == 8:  assert amount <= (5 * self.place[num])
         self.odds[num] = amount
 
-    def moveComeToPlace(self, roll):
-        self.placeBet(self.clearCome, roll)
+    def moveComeToPlace(self, throw):
+        self.placeBet(self.clearCome(), throw)
 
 
 class table():
@@ -109,6 +106,12 @@ class table():
         odds  = tuple(self.bet.odds[4:7]  + self.bet.odds[8:11])
         return (come, place, odds)
 
+    def working(self):
+        '''Return the sum of all bets currently on the table.'''
+        (come, place, odds) = self.bets()
+        total = come + sum(place) + sum(odds)
+        return (total)
+
     def payoff(self):
         '''Return everything in the payout in the form (come, (place4, place5, ..., place10), (odds4, odds5, ..., odds10)).'''
         come  = self.payout.come
@@ -116,48 +119,58 @@ class table():
         odds  = tuple(self.payout.odds[4:7]  + self.payout.odds[8:11])
         return (come, place, odds)
 
+    def collect(self):
+        '''Return and clear the entire payout.'''
+        (come, place, odds) = self.payoff()
+        total = come + sum(place) + sum(odds)
+        self.payout.clearAll()
+        return (total)
+
     def _correctOdds(self, throw, amount):
         '''Return the correct odds for this amount and the throw.'''
-        if throw == 4 or throw == 10: return (2 * amount)
-        if throw == 5 or throw == 9:  return ((3 * amount) / 2)
-        if throw == 6 or throw == 8:  return ((6 * amount) / 5)
+        if throw == 4 or throw == 10: return int((2 * amount))
+        if throw == 5 or throw == 9:  return int(((3 * amount) / 2))
+        if throw == 6 or throw == 8:  return int(((6 * amount) / 5))
+
+    def _sevenOut(self):
+        self.bet.clearAll()
+        self.point = None
+        self.comeout = True
+        self.shooter_rolls = 0
 
     def _action(self, throw):
-        # be the boxman
-        if throw == 7:
-            self.payoff.come = 2 * self.bet.clearCome()
-            if self.comeout and not self.odds_working_on_comeout:
-                for p in POINTS: self.payoff.odds[p] = self.bet.odds(p)
-            self.bet.clearAll()
-            if not self.comeout:
-                self.shooter_rolls = 0  # new shooter
-            self.comeout = True         # even if this was a comeout roll, it's still True
+        # be the boxman 
+        if throw in SVN_11:                                                 # come bets are always a "comeout" roll
+            self.payout.come = 2 * self.bet.clearCome()
+        if throw in CRAPS:
+            self.bet.clearCome()
 
         if throw in POINTS:    
             # pay any place bets and odds working. Shooter has point if comeout roll.
             # if the odds are off and on or working on the comeout, the come bet must be the same or greater as the place bet
             # to reuse the same odds bet      
-            self.payoff.odds[throw] = self._correctOdds(self.bet.odds[throw])   # pay odds
+            self.payout.odds[throw] = self._correctOdds(throw, self.bet.odds[throw])   # pay odds
             odds_stay_working = (self.comeout and self.odds_working_on_comeout) or (self.bet.come and self.odds_off_and_on)
             if not odds_stay_working:
-                self.payoff.odds[throw] += self.bet.clearOdds[throw]            # return odds
+                self.payout.odds[throw] += self.bet.clearOdds(throw)        # return odds
             else:
-                assert self.bet.come >= self.bet.place[throw]                   # odds off and on, verify new bet is >= old bet
-            self.payoff.place[throw] = 2 * self.bet.clearPlace[throw]           # pay place bet
+                assert self.bet.come >= self.bet.place[throw]               # odds off and on, verify new bet is >= old bet
+            self.payout.place[throw] = 2 * self.bet.clearPlace(throw)       # pay place bet
             self.bet.moveComeToPlace(throw)
+            if self.point == throw:                                         # shooter made his point
+                self.point = None
+                self.comeout = True
+            elif self.comeout:
+                self.point = throw                                          # comeout roll, shooter has point
+                self.comeout = False
 
-        if self.comeout:
-            if throw == 11:                                                     # winner on comeout, otherwise no action
-                self.payoff.come = 2 * self.bet.clearCome()
-            if throw in CRAPS:                                                  # loser on comeout, otherwise no action
-                self.bet.clearCome()
-            if throw in POINTS:
-                self.point = throw                                              # comeout roll, shooter has point
-            self.comeout = False
-
-
-
-
+        if throw == 7:
+            if not self.comeout:
+                self._sevenOut()
+            else:                                                           # comeout roll
+                if not self.odds_working_on_comeout:                        # return odds on comeout if not working
+                    for p in POINTS: self.payout.odds[p] = self.bet.odds[p]          
+                self.bet.clearAll()                                         # like a seven-out for all other bets
 
 #
 # Main  --  Unit Test
@@ -173,7 +186,7 @@ class TestWager(unittest.TestCase):
 
     def test_wager_comeBet(self):
         w = wager()
-        self.assertEqual(w.come, None) 
+        self.assertEqual(w.come, 0) 
         w.comeBet(5)
         self.assertEqual(w.come, 5)
         self.assertRaises(Exception, w.comeBet, 2)     # come bet already established
@@ -196,6 +209,22 @@ class TestWager(unittest.TestCase):
         self.assertRaises(Exception, w.oddsBet, (2, 6))     # odds bet on 6 must be multiple of 5
         self.assertRaises(Exception, w.oddsBet, (55, 6))    # odds bet can't exceed 10x place bet
 
+    def test_wager_clearCome(self):
+        w = wager()
+        self.assertEqual(w.come, 0)
+        w.comeBet(1)
+        self.assertEqual(w.come, 1)
+        amount = w.clearCome()
+        self.assertEqual(w.come, 0)
+        self.assertEqual(amount, 1)
+
+    def test_wager_moveComeToPlace(self):
+        w = wager()
+        w.comeBet(1)
+        w.moveComeToPlace(4)
+        self.assertEqual(w.come, 0)
+        self.assertEqual(w.place[4], 1)
+
 
 class TestTable(unittest.TestCase):
     def test_table_init(self):
@@ -210,6 +239,47 @@ class TestTable(unittest.TestCase):
         self.assertRaises(Exception, t.roll, 7, 1)
         self.assertRaises(Exception, t.roll, 1, 0)
         self.assertRaises(Exception, t.roll, 1, 7)
+
+    def test_table_bets(self):
+        t = table()
+        (come, place, odds) = t.bets()
+        self.assertEqual(come, 0)
+        self.assertEqual(place, (0,0,0,0,0,0))
+        self.assertEqual(odds, (0,0,0,0,0,0))
+
+    def test_table_action_2roll(self):
+        t = table()
+        t.comeBet(1)
+        t._action(6)                        # establish point
+        t.comeBet(1)
+        t._action(7)                        # seven-out
+        self.assertEqual(t.collect(), 2)    # come bet paid
+
+    def test_table_action_crap_roll(self):
+        t = table()
+        for c in CRAPS:     # shooter has not established a point yet
+            t.comeBet(1)
+            t._action(c)
+            self.assertEqual(t.bet.come, 0)     # come bet is lost
+            self.assertEqual(t.payout.come, 0)
+        t.point = 6         # shooter establishes point
+        t.comeout = False
+        for c in CRAPS:
+            t.comeBet(1)
+            t._action(c)
+            self.assertEqual(t.bet.come, 0)     # come bet is lost
+            self.assertEqual(t.payout.come, 0)
+
+    def test_table_action_3roll_incr_bet(self):
+        t = table()
+        t.comeBet(1)
+        t._action(6)                        # establish point
+        t.comeBet(1)
+        t._action(4)                        # another number working
+        t.comeBet(2)                        # double come bet to cover potential 7-out
+        t._action(7)                        # seven-out
+        t.assertEqual(t.collect(), 2)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
