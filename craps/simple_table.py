@@ -14,41 +14,6 @@ SVN_11          = (7, 11)
 MAX_THROW       = 12
 
 
-class wager():
-    def __init__(self, max_odds="10x"):
-        self.come  = 0                  # come bet
-        self.place = {}                 # place bets. self.place[4|5|6|8|9|10] = bet
-
-    def comeBet(self, amount):
-        assert not self.come            # cannot already be a come bet working
-        self.come = amount
-
-    def placeBet(self, amount, num):
-        assert num in POINTS            # must be one of (4,5,6,8,9,10)
-        assert not self.place[num]      # no existing place bet
-        self.place[num] = amount
-
-    def oddsBet(self, amount, num):
-        assert num in POINTS            # must be one of (4,5,6,8,9,10)
-        assert self.place[num]          # must be a current place bet
-        assert not self.odds[num]       # no existing odds bet
-        # must be able to evenly pay off 3:2 and 6:5 odds
-        if num == 5 or num == 9: assert not amount % 2           
-        if num == 6 or num == 8: assert not amount % 5
-        # odds bet can't exceed max allowed
-        if self.max_odds == "1x":  assert amount <= self.place[num]
-        if self.max_odds == "2x":  assert amount <= (2 * self.place[num])
-        if self.max_odds == "10x": assert amount <= (10 * self.place[num])
-        if self.max_odds == "345x":
-            if num == 4 or num == 10: assert amount <= (3 * self.place[num])
-            if num == 5 or num == 9:  assert amount <= (4 * self.place[num])
-            if num == 6 or num == 8:  assert amount <= (5 * self.place[num])
-        self.odds[num] = amount
-
-    def moveComeToPlace(self, throw):
-        self.placeBet(self.clearCome(), throw)
-
-
 class table():
     def __init__(self):
         self.come   = 0                  # come bet
@@ -63,7 +28,6 @@ class table():
         else:
             assert die1_or_total >= 1 and die1_or_total <= MAX_THROW
             throw = die1_or_total
-        self.shooter_rolls += 1
         self._action(throw)
 
     def comeBet(self, amount):
@@ -84,6 +48,12 @@ class table():
         (come, place) = self.bets()
         total = come + sum(place)
         return (total)
+
+    def collectPayout(self):
+        '''Return payout and clear it.'''
+        payout = self.payout
+        self.payout = 0
+        return(payout)
 
     def _action(self, throw):
         # be the boxman 
@@ -137,7 +107,7 @@ class TestTable(unittest.TestCase):
 
     def test_table_workingPoints(self):
         t = table()
-        t.come = 1
+        self.assertEqual(t.workingPoints(), [])
         t.place[4]  = 4
         t.place[8]  = 8
         t.place[10] = 10
@@ -150,6 +120,13 @@ class TestTable(unittest.TestCase):
         t.place[8]  = 8
         t.place[10] = 10
         self.assertEqual(t.workingAmount(), 23)
+
+    def test_table_collectPayout(self):
+        t = table()
+        t.payout = 4
+        payout = t.collectPayout()
+        self.assertEqual(payout, 4)
+        self.assertEqual(t.payout, 0)
 
     def test_table_action_2roll(self):
         t = table()

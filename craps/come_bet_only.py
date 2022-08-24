@@ -2,7 +2,7 @@
 # Make only come bets, no odds bets.
 #
 
-import sys, table
+import sys, simple_table
 
 
 def get_shooters():
@@ -37,23 +37,24 @@ def histogram(data, normalize=False):
 
 roll_length_vs_payoff = {}     # [trial1_payoff, trial2_payoff, ..., trialn_payoff]
 
-t = table.table()
-t.odds_off_and_on = False
-t.odds_working_on_comeout = False
+t = simple_table.table()
 shooters = get_shooters()
 
 for s in shooters:
     bank = 0
     win_loss = []  # track cumulative win/loss on every roll, not including bets on the table
     for throw in s:
-        if t.working() >= 2: bet = 2
-        else:                bet = 1
+        # bet is the amount already on the table, up to MAX_BET, minimum of 1
+        MIN_BET = 1
+        MAX_BET = 4
+        bet = t.workingAmount()
+        bet = max(bet, MIN_BET)
+        bet = min(bet, MAX_BET)
         t.comeBet(bet)
         bank -= bet
         t.roll(throw)
-        (come, place, odds) = t.payoff()
-        bank += (t.collect())    # net win/loss = table payoff minus amount bet
-        win_loss.append(bank + t.working())
+        bank += t.collectPayout()    # table payoff including amount bet
+        win_loss.append(bank + t.workingAmount())
     # print (s, win_loss)
     if len(s) in roll_length_vs_payoff.keys():
         roll_length_vs_payoff[len(s)].append(win_loss[-1])
