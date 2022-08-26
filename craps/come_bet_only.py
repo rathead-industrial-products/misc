@@ -34,6 +34,9 @@ def histogram(data, normalize=False):
 # Main
 #
 
+BET_SEQUENCE = (1, 1, 1, 1, 1, 4, 4)        # amount to bet when there are already (0,1,2,3,4,5,6) place bets working
+AFTER_CRAP = -4                             # increment bet this amount after rolling a 2, 3, or 12
+AFTER_11   = -4                             # increment bet this amount after rolling an 11
 
 roll_length_vs_payoff = {}     # [trial1_payoff, trial2_payoff, ..., trialn_payoff]
 
@@ -42,19 +45,23 @@ shooters = get_shooters()
 
 for s in shooters:
     bank = 0
+    last_throw = 0
     win_loss = []  # track cumulative win/loss on every roll, not including bets on the table
     for throw in s:
-        # bet is the amount already on the table, up to MAX_BET, minimum of 1
-        MIN_BET = 1
-        MAX_BET = 4
-        bet = t.workingAmount()
-        bet = max(bet, MIN_BET)
-        bet = min(bet, MAX_BET)
+        working = len(t.workingPoints())
+        bet = BET_SEQUENCE[working]
+        if last_throw in simple_table.CRAPS:
+            bet += AFTER_CRAP
+            bet = max(0, bet)
+        if last_throw == 11:
+            bet += AFTER_11
+            bet = max(0, bet)
         t.comeBet(bet)
         bank -= bet
         t.roll(throw)
         bank += t.collectPayout()    # table payoff including amount bet
         win_loss.append(bank + t.workingAmount())
+        last_throw = throw
     # print (s, win_loss)
     if len(s) in roll_length_vs_payoff.keys():
         roll_length_vs_payoff[len(s)].append(win_loss[-1])

@@ -16,29 +16,38 @@
 #
 # 
 
-from inspect import GEN_RUNNING
-import random
+import random, sys, time
+sys.path.append("/Users/mitchell/Desktop/github-rathead/misc/craps/")
+import simple_table
 
+DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
 
-POPULATION_SIZE = 30        # 20 - 40
-CROSSOVER_RATE  = 0.95      # the chance that two chromosomes exchange some of their parts
-MUTATION_RATE   = 0.05      # how many chromosomes are mutated in one generation ( < 0.05 )
-GENES           = 9
+POPULATION_SIZE     = 30         # 20 - 40
+CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
+MUTATION_RATE       = 0.05      # how many chromosomes are mutated in one generation ( < 0.05 )
+GENERATIONS         = 50
+N_GENES             = 9
+N_GENE_BETS_WORKING = 6
+GENE_CRAP           = 7
+GENE_11             = 8
 
 RANDOM_SEED     = 314
-
-INC_BET_CRAP = 7
-INC_BET_11   = 8
 
 MIN_BET = 1
 MAX_BET = 5
 
-def init_population(pop_size, n_genes):
+def randomGeneValue(gene):
+    if gene == GENE_CRAP or gene == GENE_11:
+        return(random.randint(-MAX_BET, MAX_BET))
+    else:
+        return(random.randint(MIN_BET, MAX_BET))
+
+def initPopulation(pop_size, N_GENES):
     population = []
     for c in range(pop_size):
         c = []
-        for g in range(n_genes):
-            c.append(random.randint(MIN_BET, MAX_BET))
+        for g in range(N_GENES):
+            c.append(randomGeneValue(g))
         population.append(c)
     return (population)
 
@@ -63,52 +72,76 @@ def mutate(population, mutation_rate):
     for individual in population:
         if random.randint(1, 100) <= int(100 * mutation_rate):  # randomly select an individual to mutate
             gene = random.randint(0,len(individual)-1)          # select a gene to mutate
-            print("mutate", individual, gene)
-            individual[gene] = random.randint(MIN_BET, MAX_BET) # mutate the gene
+            #print("mutate", individual, gene)
+            individual[gene] = randomGeneValue(gene) # mutate the gene
 
 def fitness(individual):
-    fit = 0
-    for f in range(len(COIN_FLIP)):
-        if individual[f] == COIN_FLIP[f]:
-            fit += 1
-        else:
-            fit -= 1
-    return (fit)
+    t = simple_table.table()
+    last_throw = 0
+    bank = 0
+    for s in roll_seq:
+        for throw in s:
+            # bet is dictated by genes
+            bet = individual[len(t.workingPoints())]
+            if last_throw in simple_table.CRAPS:
+                bet += individual[GENE_CRAP]
+                bet = max(0, bet)       # can't bet < 0
+            if last_throw == 11:
+                bet += individual[GENE_11]
+                bet = max(0, bet)       # can't bet < 0
+            t.comeBet(bet)
+            bank -= bet
+            t.roll(throw)
+            bank += t.collectPayout()    # table payoff including amount bet
+            last_throw = throw
+        # print (s, bank)
+    return (bank)
 
 def rankPopulation(population):
     rp = sorted(population, key=fitness, reverse=True)
     return (rp)
 
-
+def getRollSequences():
+    sequence = []
+    with open(DICE_SEQUENCES) as f:
+        for line in f.readlines():
+            lstr = line.strip()[1:-1].split(',')
+            l = tuple([int(i) for i in lstr])
+            sequence.append(l)
+        return (tuple(sequence))
 #
 # Main 
 #
 
-GENERATIONS = 50
-
+start_time = time.time()
 random.seed(RANDOM_SEED)
-
-pop = init_population(POPULATION_SIZE, GENES)
+pop = initPopulation(POPULATION_SIZE, N_GENES)
+roll_seq = getRollSequences()
 
 for g in range(GENERATIONS):
-
     pop = rankPopulation(pop)
     print ("Generation", g)
-    for p in pop: print (p, fitness(p))
-    print()
+
+    if g % 10 == 0:
+        print (pop[0], fitness(pop[0]))
+        #print()
 
     pairs = selection(pop)
     pop = []
-
     for parent in pairs:
-        for p in parent: print (p, fitness(p))
-        print ()
+        #for p in parent: print (p, fitness(p))
+        #print ()
 
         children = crossover(parent[0], parent[1], CROSSOVER_RATE)
         for c in children:
             pop.append(c)
-            print (c, fitness(c))
-        print ()
+            #print (c, fitness(c))
+        #print ()
 
     mutate(pop, MUTATION_RATE)
 
+pop = rankPopulation(pop)
+print ("Generation", g)
+for p in pop: print (p, fitness(p))
+
+print('Execution time = %0.1f sec ' % (time.time() - start_time))
