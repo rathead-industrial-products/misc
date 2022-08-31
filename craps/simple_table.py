@@ -52,6 +52,12 @@ class table():
         dont_place = [self.dont_place.get(p, 0) for p in POINTS]
         return (dont_come, dont_place)
 
+    def takeDownWrong(self):
+        '''Remove and return all the dont place bets'''
+        bets = self.betsWrong()
+        self.dont_place = {}
+        return (sum(bets[1]))
+
     def workingPointsRight(self):
         '''Return the come/place points that have a bet.'''
         return (sorted(self.place.keys()))
@@ -90,7 +96,7 @@ class table():
         # right player
         if throw in self.place.keys():
             self.payout += 2 * self.place[throw]
-        if throw in POINTS: 
+        if throw in POINTS and self.come: 
             self.place[throw] = self.come
         if throw in SVN_11:
             self.payout += 2 * self.come
@@ -101,16 +107,17 @@ class table():
         # wrong player
         if throw in self.dont_place.keys():
             del(self.dont_place[throw])
-        if throw in POINTS: 
+        if throw in POINTS and self.dont_come: 
             self.dont_place[throw] = self.dont_come
         if throw in CRAPS and throw != BAR:
             self.dont_payout += 2 * self.dont_come
         if throw == BAR:
-            return      # dont clear the dont_come bet
+            self.dont_payout += self.dont_come  # push, return bet
         if throw == 7:
             for p in self.dont_place.keys():
                 self.dont_payout += 2 * self.dont_place[p]
             self.dont_place = {}
+        # no need to test against 7 or 11 for don't come bet, it is lost automatically
         self.dont_come = 0
 
 
@@ -167,6 +174,17 @@ class TestTable(unittest.TestCase):
         t.dont_place[9]  = 9
         t.dont_place[10] = 10
         self.assertEqual(t.betsWrong(), (1, [4, 5, 6, 8, 9, 10]))
+
+    def test_table_takeDownWrong(self):
+        t = table()
+        t.dont_come = 1
+        t.dont_place[4]  = 4
+        t.dont_place[5]  = 5
+        t.dont_place[6]  = 6
+        self.assertEqual(t.betsWrong(), (1, [4, 5, 6, 0, 0, 0]))
+        working_bets_returned = t.takeDownWrong()
+        self.assertEqual(t.betsWrong(), (1, [0, 0, 0, 0, 0, 0]))
+        self.assertEqual(working_bets_returned, 15)
 
     def test_table_workingPointsRight(self):
         t = table()
@@ -227,7 +245,7 @@ class TestTable(unittest.TestCase):
         self.assertEqual(t.payout, 2)       # come bet paid
         self.assertEqual(t.dont_payout, 2)  # dont place bet paid
 
-    def test_table_action_crap_roll(self):
+    def test_table_action_roll_crap(self):
         t = table()
         for c in CRAPS:     # shooter has not established a point yet
             t.comeBet(1)
@@ -240,9 +258,13 @@ class TestTable(unittest.TestCase):
                 self.assertEqual(t.dont_payout, 2)  # don't come bet pays off
                 t.dont_payout = 0
             else:
-                self.assertEqual(t.dont_come, 1)    # push
+                self.assertEqual(t.dont_come, 0)
+                self.assertEqual(t.dont_payout, 1)  # push, return dont come bet
+
+    def test_table_action_roll_crap_after_point(self):
+        t = table()
         t.comeBet(1)
-        t.dont_come = 1                     # dont come not cleared if throw was BAR
+        t.dontComeBet(1)
         t._action(6)                        # establish point
         self.assertEqual(t.come, 0)         # come bet moved to point
         self.assertEqual(t.dont_come, 0)
@@ -257,7 +279,8 @@ class TestTable(unittest.TestCase):
                 self.assertEqual(t.dont_payout, 2)  # don't come bet pays off
                 t.dont_payout = 0
             else:
-                self.assertEqual(t.dont_come, 1)    # push
+                self.assertEqual(t.dont_come, 0)
+                self.assertEqual(t.dont_payout, 1)  # push, return dont come bet
   
     def test_table_action_3roll_incr_bet(self):
         t = table()
@@ -303,6 +326,21 @@ class TestTable(unittest.TestCase):
         self.assertEqual(t.dont_payout, 4)  # points paid, dont come bet lost
         self.assertEqual(t.workingPointsRight(), [])    # no place bets working
         self.assertEqual(t.workingPointsWrong(), [])    # no place bets working
+
+    def test_table_action_dont_come_sequence_1(self):
+        SEQUENCE = (11, 7, 7, 7, 11, 5, 7)
+        t = table()
+        for s in SEQUENCE:
+            t.dontComeBet(1)
+            t._action(s)
+        self.assertEqual(t.collectPayoutWrong(), 2)
+
+    def test_table_action_establish_point_no_come_dont_come(self):
+        t = table()
+        # no come or don't come bet
+        t._action(6)
+        self.assertEqual(t.workingPointsWrong(), [])
+        self.assertEqual(t.workingPointsRight(), [])
 
 
 if __name__ == '__main__':

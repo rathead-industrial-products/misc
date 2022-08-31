@@ -1,5 +1,5 @@
 #
-# Make only come bets, no odds bets.
+# Make only come/don't come bets, no odds bets.
 #
 
 import sys, simple_table
@@ -56,16 +56,15 @@ for s in sequence:
     win_loss_right = []  # track cumulative win/loss on every roll, not including bets on the table
     win_loss_wrong = []  # track cumulative win/loss on every roll, not including bets on the table
     for throw in s:
+        throws += 1
         working_right = len(t.workingPointsRight())
         come_bet = BET_SEQUENCE[working_right]
         working_wrong = len(t.workingPointsWrong())
         dont_come_bet = BET_SEQUENCE[working_wrong]
 
-        if bank_wrong <= -6:
-            dont_come_bet = 0
-            if throws > 20:
-                bank_wrong = working_wrong
-                t.dont_place = {}
+        if ((bank_wrong + working_wrong) <= -60) or throws > 3:
+            dont_come_bet = 0        
+            bank_wrong += t.takeDownWrong()
 
         if last_throw in simple_table.CRAPS:
             come_bet += AFTER_CRAP_RIGHT
@@ -88,9 +87,7 @@ for s in sequence:
         bank_wrong += t.collectPayoutWrong()    # table payoff including amount bet
         win_loss_wrong.append(bank_wrong + t.workingAmountWrong())
         last_throw = throw
-        throws += 1
     # print (s, win_loss_right)
-    # print (s, win_loss_wrong)
     if len(s) in roll_length_vs_payoff_right.keys():
         roll_length_vs_payoff_right[len(s)].append(win_loss_right[-1])
     else:
@@ -110,8 +107,8 @@ for k in sorted(roll_length_vs_payoff_right.keys()):
         total += mult * h
         mult += 1
     total_for_all_sequences += total
-    print (k, offset, hist, total)
-print (total_for_all_sequences)
+#    print (k, offset, hist, total)
+#print (total_for_all_sequences)
     
 # wrong betting histograms
 total_for_all_sequences = 0
