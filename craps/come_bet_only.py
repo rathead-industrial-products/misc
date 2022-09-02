@@ -46,6 +46,9 @@ roll_length_vs_payoff_wrong = {}
 t = simple_table.table()
 sequence = get_sequence()
 
+per_roll_win_loss_history_wrong = []
+cum_win_loss_history_wrong      = []
+
 
 for s in sequence:
     stop_wrong_betting = False
@@ -61,11 +64,11 @@ for s in sequence:
         come_bet = BET_SEQUENCE[working_right]
         working_wrong = len(t.workingPointsWrong())
         dont_come_bet = BET_SEQUENCE[working_wrong]
-
+        '''
         if ((bank_wrong + working_wrong) <= -60) or throws > 3:
             dont_come_bet = 0        
             bank_wrong += t.takeDownWrong()
-
+        '''
         if last_throw in simple_table.CRAPS:
             come_bet += AFTER_CRAP_RIGHT
             come_bet = max(0, come_bet)
@@ -87,7 +90,8 @@ for s in sequence:
         bank_wrong += t.collectPayoutWrong()    # table payoff including amount bet
         win_loss_wrong.append(bank_wrong + t.workingAmountWrong())
         last_throw = throw
-    # print (s, win_loss_right)
+    print (s, win_loss_wrong)
+    per_roll_win_loss_history_wrong += win_loss_wrong
     if len(s) in roll_length_vs_payoff_right.keys():
         roll_length_vs_payoff_right[len(s)].append(win_loss_right[-1])
     else:
@@ -96,7 +100,10 @@ for s in sequence:
         roll_length_vs_payoff_wrong[len(s)].append(win_loss_wrong[-1])
     else:
         roll_length_vs_payoff_wrong[len(s)] = [win_loss_wrong[-1],]
+print (per_roll_win_loss_history_wrong)
+
     
+"""
 # right betting histograms
 total_for_all_sequences = 0
 for k in sorted(roll_length_vs_payoff_right.keys()):
@@ -122,6 +129,6 @@ for k in sorted(roll_length_vs_payoff_wrong.keys()):
     total_for_all_sequences += total
     print (k, offset, hist, total)
 print (total_for_all_sequences)
-
+"""
 
 
