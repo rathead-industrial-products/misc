@@ -47,7 +47,7 @@ t = simple_table.table()
 sequence = get_sequence()
 
 per_roll_win_loss_history_wrong = []
-cum_win_loss_history_wrong      = []
+cum_win_loss_history_wrong      = [0]
 
 
 for s in sequence:
@@ -58,6 +58,7 @@ for s in sequence:
     throws     = 0
     win_loss_right = []  # track cumulative win/loss on every roll, not including bets on the table
     win_loss_wrong = []  # track cumulative win/loss on every roll, not including bets on the table
+    cum_wrong = cum_win_loss_history_wrong[-1]
     for throw in s:
         throws += 1
         working_right = len(t.workingPointsRight())
@@ -87,8 +88,9 @@ for s in sequence:
         t.roll(throw)
         bank_right += t.collectPayoutRight()    # table payoff including amount bet
         win_loss_right.append(bank_right + t.workingAmountRight())
-        bank_wrong += t.collectPayoutWrong()    # table payoff including amount bet
+        bank_wrong += t.collectPayoutWrong()   # table payoff including amount bet
         win_loss_wrong.append(bank_wrong + t.workingAmountWrong())
+        cum_win_loss_history_wrong.append(cum_wrong + win_loss_wrong[-1])
         last_throw = throw
     print (s, win_loss_wrong)
     per_roll_win_loss_history_wrong += win_loss_wrong
@@ -101,6 +103,7 @@ for s in sequence:
     else:
         roll_length_vs_payoff_wrong[len(s)] = [win_loss_wrong[-1],]
 print (per_roll_win_loss_history_wrong)
+print (cum_win_loss_history_wrong)
 
     
 """
