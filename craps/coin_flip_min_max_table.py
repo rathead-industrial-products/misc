@@ -40,21 +40,43 @@
 import random, statistics, sys
 
 RANDOM_SEED     = 314
-N_TRIALS        = 2
-FLIPS_PER_TRIAL = 100
-ROWS            = FLIPS_PER_TRIAL // 2  # arbitrary big number, should not be exceeded
-COLS            = FLIPS_PER_TRIAL // 2
+N_TRIALS        = 100
+FLIPS_PER_TRIAL = 10
+ROWS            = FLIPS_PER_TRIAL +1// 1  # arbitrary big number, should not be exceeded
+COLS            = FLIPS_PER_TRIAL +1// 1
 
 def flip():
     '''Return +1 if heads, -1 if tails.'''
     if random.randint(0,1): return +1
     else:                   return -1
 
-def printTable(table):
-    for row in range(ROWS-1, 0, -1): # y values
+def sumTables(t1, t2):
+    # perform the matrix addition of t1 += t2
+    for c in range(COLS):
+        for r in range(ROWS):       
+            t1[c][r] += t2[c][r]
+
+def normalizeTable(t):
+    # normailze all cells -1 <= value <= 1
+    for c in range(COLS):
+        for r in range(ROWS):       
+            t[c][r] /= N_TRIALS
+
+def rmZeroTable(t):
+    # remove row 0 and column 0 from the table
+    # translate contents down and left
+    for c in range(COLS-1):
+        for r in range(ROWS-1):       
+            t[c][r] = t[c+1][r+1]
+
+def printTable(table, norm=False):
+    for row in range(ROWS-1, -1, -1): # y values
         print ()
-        for col in range(1, COLS): # x values
-            print ("%3d" % table[col][row], end='')
+        for col in range(0, COLS): # x values
+            if norm:
+                print ("%+7.2f" % table[col][row], end='')
+            else:
+                print ("%3d" % table[col][row], end='')
     print ()
 
 
@@ -64,11 +86,12 @@ def printTable(table):
 
 #random.seed(RANDOM_SEED)
 
+totals_table = [[0 for col in range(COLS)] for row in range(ROWS)] # initialize table
 for t in range(N_TRIALS):
     total = 0
     tmax = 0
     tmin = 0
-    series_table = [[0 for col in range(COLS)] for row in range(ROWS)] # initialize table
+    series_table = [[0 for col in range(COLS)] for row in range(ROWS)] # initialize table   
     for f in range(FLIPS_PER_TRIAL):
         total += flip()
         if total > tmax:
@@ -84,7 +107,37 @@ for t in range(N_TRIALS):
             for row in range(ROWS):
                 if series_table[tmin_abs][row] == 0:
                     series_table[tmin_abs][row] = -1
+    sumTables(totals_table, series_table)
+#printTable(totals_table)
+#rmZeroTable(totals_table)
+#printTable(totals_table)
+normalizeTable(totals_table)
+printTable(totals_table, True)
 
-    printTable(series_table)
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
+
+
+data = np.array(totals_table)
+data = np.delete(data, 0, 0)   # remove row 0
+data = np.delete(data, 0, 1)   # column 0
+length = data.shape[0]
+width = data.shape[1]
+x, y = np.meshgrid(np.arange(length), np.arange(width))
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1, projection='3d')
+surf = ax.plot_surface(x, y, data, cmap=cm.seismic,
+                       linewidth=0, antialiased=False)
+
+fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.gca().invert_xaxis()
+plt.show()
+
 
 
