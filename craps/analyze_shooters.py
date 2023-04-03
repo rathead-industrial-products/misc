@@ -5,21 +5,22 @@
 
 import sys
 import statistics
+import roll
 
 
 POINTS      = (4,5,6,8,9,10)
 CRAPS       = (2,3,12)
 SVN11       = (7,11)
 MAX_THROW   = 12
+N_SHOOTERS  = 10
 
 
-def get_shooters():
+def get_shooters(n_shooters=N_SHOOTERS):
     shooters = []
-    for line in sys.stdin:
-        lstr = line.strip()[1:-1].split(',')
-        l = tuple([int(i) for i in lstr])
-        shooters.append(l)
-    return (tuple(shooters))
+    while n_shooters:
+        shooters.append(roll.seq())
+        n_shooters -= 1
+    return (shooters)
 
 def meanMedianMode(data):
     '''statistics.mode (version < 3.8) will generate an exception if no unique mode found.'''
@@ -111,9 +112,10 @@ def writeCSV(file_name, data_series=[(),(),()], column_headers= ()):
 # Main
 #
 
+roll.seed()
 shooters = get_shooters()
 
-# print(shooters)   # source data from file
+# print(shooters)   # source data 
 (rolls_per_shooter, roll_stats) = rollLength(shooters)
 (points_made_per_shooter, points_made_stats) = pointsMade(shooters)
 (points_covered_per_shooter, points_covered_stats) = pointsCovered(shooters)
