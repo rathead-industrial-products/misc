@@ -1,0 +1,17 @@
+
+
+come_dont_come_baseline.py
+--------------------------
+Gemerate baseline data set for pass/come don't pass/don't come betting.
+
+For each shooter, bet 1 unit on come (don't come) every roll.
+After shooter 7s-out, calculate total shooter's payout.
+Aggregate data across ** many ** shooters.
+
+Summarize data:
+For each roll of length n, calculate:
+	payout					(mean, median, mode, and std dev)
+	Number of points made	 		(mean, median, mode, and std dev)
+	Number of points riding at 7-out	(mean, median, mode, and std dev)
+Plot number of rolls vs:
+	mean payout with std dev error bars

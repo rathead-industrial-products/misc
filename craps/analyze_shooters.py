@@ -22,11 +22,11 @@ def get_shooters(n_shooters=N_SHOOTERS):
         n_shooters -= 1
     return (shooters)
 
-def meanMedianMode(data):
+def meanMedianModeStdDev(data):
     '''statistics.mode (version < 3.8) will generate an exception if no unique mode found.'''
     try:    mode = statistics.mode(data)                             # returns first mode found
     except: mode = max([p[0] for p in statistics._counts(data)])    # returns largest if no unique mode
-    return (statistics.mean(data), statistics.median(data), mode)
+    return (statistics.mean(data), statistics.median(data), mode, statistics.stdev(data))
 
 def histogram(data, normalize=False):
     '''Given a list of non-negative integers, return a tuple of the number of occurances of each integer.
