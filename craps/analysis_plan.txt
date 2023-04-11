@@ -1,4 +1,15 @@
+glossery
+--------
+Sequence: A series of rolls. A shooter's sequence is the entirety
+of the shooter's tenure, from the first roll to the final 7-out.
 
+Roll Analysis
+-------------
+Analysis of dice and roll behavior, independent of any wagering.
+1. Total rolls per shooter
+	Histogram of sequence length vs number of occurrences
+2. Total number of points made
+	3x Histogram of points made vs roll length (mean, median, mode)
 
 come_dont_come_baseline.py
 --------------------------
