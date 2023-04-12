@@ -47,7 +47,7 @@ def rollLength(shooters):
     n_rolls = [len(s) for s in shooters]
     return (n_rolls, meanMedianModeStdDev(n_rolls))
 
-def pointsCovered(shooters):    # assume continuous come line betting
+def pointsCovered(shooters):    # for each shooter calculate maximum number of points covered, assuming continuous come line betting
     '''Returns ((shooter1_pts_covered, shooter2_pts_covered, ...), (mean, median, mode))'''
     points_covered = []
     n_shooters = 0
@@ -62,7 +62,7 @@ def pointsCovered(shooters):    # assume continuous come line betting
                 points = [False] * MAX_THROW
     return (points_covered, meanMedianModeStdDev(points_covered))
 
-def pointsMade(shooters):    # assume continuous come line betting
+def pointsMade(shooters):    # for each shooter calculate total number of points made, assuming continuous come betting
     '''Returns ((shooter1_pts_made, shooter2_pts_made, ...), (mean, median, mode))'''
     points_made = []
     n_shooters = 0
@@ -120,14 +120,17 @@ shooters = get_shooters()
 (rolls_per_shooter, roll_stats) = rollLength(shooters)
 (points_made_per_shooter, points_made_stats) = pointsMade(shooters)
 (points_covered_per_shooter, points_covered_stats) = pointsCovered(shooters)
+points_made_per_point_covered = pointsMadePerPointCovered(shooters)
 rps_hist = histogram(rolls_per_shooter, True)
 pmps_hist = histogram(points_made_per_shooter, True)
 pcps_hist = histogram(points_covered_per_shooter, True)
+pmppc_hist = pointsMadePerPointCovered(shooters)
+
 
 print("rolls per shooter", roll_stats, rps_hist)
 print("points made per shooter", points_made_stats, pmps_hist)
 print("points covered per shooter", points_covered_stats, pcps_hist)
-print("points made per point covered", pointsMadePerPointCovered(shooters))
+print("points made per point covered", pmppc_hist)
 
-writeCSV("roll_histogram.csv", (rps_hist, pmps_hist), ("rolls per shooter", "points made per shooter"))
+writeCSV("roll_histogram.csv", (rps_hist, pmps_hist, pcps_hist, pmppc_hist), ("rolls per shooter", "points made per shooter", "points covered per shooter", "points made per point covered"))
 
