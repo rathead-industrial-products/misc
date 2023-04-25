@@ -4,8 +4,6 @@
 # Perform the actions of the boxmen.
 #
 
-from ctypes.wintypes import POINT
-
 
 DIE_FACE        = (1,2,3,4,5,6)
 POINTS          = (4,5,6,8,9,10)
@@ -23,6 +21,11 @@ class table():
         self.dont_place  = {}
         self.payout      = 0
         self.dont_payout = 0
+        self.comeout     = True         # next roll status
+        self.seven_out   = False        # last roll status
+        self.svn11       = False
+        self.crap        = False
+        self.crap_bar    = False
 
     def roll(self, die1_or_total, die2=None):
         if die2 != None:
@@ -32,7 +35,7 @@ class table():
         else:
             assert die1_or_total >= 1 and die1_or_total <= MAX_THROW
             throw = die1_or_total
-        self._action(throw)
+        return(throw)
 
     def comeBet(self, amount):
         self.come = amount
@@ -341,6 +344,9 @@ class TestTable(unittest.TestCase):
         t._action(6)
         self.assertEqual(t.workingPointsWrong(), [])
         self.assertEqual(t.workingPointsRight(), [])
+
+    # tests
+    # comeout, seven_out, svn11, crap, crap_bar
 
 
 if __name__ == '__main__':

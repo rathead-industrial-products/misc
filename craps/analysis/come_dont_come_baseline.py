@@ -51,11 +51,34 @@ def writeCSV(file_name, data_series=[(),(),()], column_headers= ()):
         f.write('\n')
     f.close()
 
+
+def collectBets(throw, table, bank):
+    # right
+    if table.seven_out:
+        bank['bal_rt
+
+
+
+
 #
 # Main
 #
 
+bank = ['bal_rt': 0, 'wrk_rt': 0, 'bal_wr': 0, 'wrk_wr': 0]        # right balance, right working, wrong balance, wrong working
+table = simple_table()
+
 shooters = [roll.seq() for i in range(N_SHOOTERS)]
+
+for s in shooters:
+    for throw in s:
+        table.comeBet(1)
+        working_right += 1
+        table.dontComeBet(1)
+        working_wrong += 1
+        table._action(throw)
+        # right begging
+        if throw in 
+
 
 hist_right = []
 hist_wrong = []
