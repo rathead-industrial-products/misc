@@ -13,7 +13,7 @@ POINTS      = (4,5,6,8,9,10)
 CRAPS       = (2,3,12)
 SVN11       = (7,11)
 MAX_THROW   = 12
-N_SHOOTERS  = 100000
+N_SHOOTERS  = 1000000
 
 
 def get_shooters(n_shooters=N_SHOOTERS):
@@ -77,6 +77,25 @@ def pointsMade(shooters):    # for each shooter calculate total number of points
                 points = [False] * MAX_THROW
     return (points_made, meanMedianModeStdDev(points_made))
 
+def pointsMadeVsRollLength(shooters):
+    # for each roll of length (2-max) construct a histogram of number of points made
+    shooters_roll_length = rollLength(shooters)[0]      # list of roll lengths
+    shooters_points_made = pointsMade(shooters)[0]      # number of points made on each roll aligned with shooters_roll_length
+    n_shooters = len(shooters)
+    longest_roll = max(shooters_roll_length)
+    total_points_made = [0] * (longest_roll+1)          # total number of points made for each roll length across all shooters
+    roll_length_occurrances = [0] * (longest_roll+1)    # number of times each roll length happens
+    points_made_vs_roll_length = [0] * (longest_roll+1) # array to contain final results
+    for i in range(n_shooters):                         # for each shooters roll
+        rl = shooters_roll_length[i]                    # .. of length rl
+        total_points_made[rl] += shooters_points_made[i]    # accumulate points made for a roll of length rl
+        roll_length_occurrances[rl] += 1                # keep track of number of times this roll length has occurred
+    for i in range(2, (longest_roll+1)):                # normalize points made - rolls of length 0 and 1 never occur
+        if roll_length_occurrances[i]:                  # avoid divide-by-zero if roll length never occurred
+            points_made_vs_roll_length[i] = round((total_points_made[i] / roll_length_occurrances[i]), 1)
+    return(points_made_vs_roll_length)
+       
+
 def pointsMadePerPointCovered(shooters):
     '''For each number of points covered (1-6) in a shooter's roll, construct a histogram of points made.'''
     shooters_points_covered = pointsCovered(shooters)[0]
@@ -124,13 +143,20 @@ points_made_per_point_covered = pointsMadePerPointCovered(shooters)
 rps_hist = histogram(rolls_per_shooter, True)
 pmps_hist = histogram(points_made_per_shooter, True)
 pcps_hist = histogram(points_covered_per_shooter, True)
+pmvrl_hist = pointsMadeVsRollLength(shooters)
 pmppc_hist = pointsMadePerPointCovered(shooters)
 
 
 print("rolls per shooter", roll_stats, rps_hist)
 print("points made per shooter", points_made_stats, pmps_hist)
 print("points covered per shooter", points_covered_stats, pcps_hist)
+print("points made vs roll length", pmvrl_hist)
 print("points made per point covered", pmppc_hist)
 
-writeCSV("roll_histogram.csv", (rps_hist, pmps_hist, pcps_hist, pmppc_hist), ("rolls per shooter", "points made per shooter", "points covered per shooter", "points made per point covered"))
+writeCSV("roll_histogram.csv", (rps_hist, pmps_hist, pcps_hist, pmvrl_hist, pmppc_hist), 
+                               ("rolls per shooter", 
+                                "points made per shooter",
+                                "points covered per shooter",
+                                "points made vs roll length",
+                                "points made per point covered"))
 

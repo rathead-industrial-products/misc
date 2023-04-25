@@ -47,7 +47,9 @@ def meanMedianModeStdDev(data):
     # statistics.mode (version < 3.8) will generate an exception if no unique mode found.
     try:    mode = statistics.mode(data)                             # returns first mode found
     except: mode = max([p[0] for p in statistics._counts(data)])    # returns largest if no unique mode
-    return (statistics.mean(data), statistics.median(data), mode, round(statistics.stdev(data),1))
+    if len(data) > 1: sd = round(statistics.stdev(data),1)
+    else:             sd = None
+    return (round(statistics.mean(data),1), statistics.median(data), mode, sd)
 
 #
 # seq is a single shooter's complete tenure
@@ -90,10 +92,10 @@ def crapsRight(seq):
     return (c)    
 
 def crapsWrong(seq):
-    # return number of 3s, and 12s rolled
+    # return number of 3s and 2s rolled - bar 12
     c = 0
     for roll in seq:
-        if roll == 3 or roll == 12: c += 1
+        if roll == 3 or roll == 2: c += 1
     return (c)    
 
 def payoutRight(seq):
@@ -159,6 +161,66 @@ class TestSeqEnd(unittest.TestCase):
         seed()
         seq1 = [5, 4, 6, 8, 8, 4, 10, 7]
         self.assertEqual(seq(), seq1)
+
+    def test_rollLength(self):
+        s = [5, 4, 6, 8, 8, 4, 10, 7]
+        self.assertEqual(rollLength(s), 8)
+
+    def test_pointsMade(self):
+        s = (8,4,6,8,7,9,8,7)
+        self.assertEqual(pointsMade(s), 2)
+        s = (3,11,12,2,6,7)
+        self.assertEqual(pointsMade(s), 0)
+        s = (8,4,6,6,10,9,8,4,7)
+        self.assertEqual(pointsMade(s), 3)
+
+    def test_pointsRiding(self):
+        s = (8,4,6,8,7,9,8,7)
+        self.assertEqual(pointsRiding(s), 4)
+        s = (3,11,12,2,6,7)
+        self.assertEqual(pointsRiding(s), 1)
+        s = (8,4,6,6,10,9,8,4,7)
+        self.assertEqual(pointsRiding(s), 5)
+
+    def test_svn11(self):
+        s = (8,4,6,8,7,9,8,7)
+        self.assertEqual(svn11(s), 2)
+        s = (3,11,12,2,6,7)
+        self.assertEqual(svn11(s), 2)
+        s = (8,4,6,6,10,9,8,4,7)
+        self.assertEqual(svn11(s), 1)
+
+    def test_crapsRight(self):
+        s = (8,4,6,8,7,9,8,7)
+        self.assertEqual(crapsRight(s), 0)
+        s = (3,11,12,2,6,7)
+        self.assertEqual(crapsRight(s), 3)
+        s = (8,4,6,6,10,9,8,4,7)
+        self.assertEqual(crapsRight(s), 0)
+
+    def test_crapsWrong(self):
+        s = (8,4,6,8,7,9,8,7)
+        self.assertEqual(crapsWrong(s), 0)
+        s = (3,11,12,2,6,7)
+        self.assertEqual(crapsWrong(s), 2)
+        s = (8,4,6,6,10,9,8,4,7)
+        self.assertEqual(crapsWrong(s), 0)
+
+    def test_payoutRight(self):
+        s = (8,4,6,8,7,9,8,7)
+        self.assertEqual(payoutRight(s), 0)
+        s = (3,11,12,2,6,7)
+        self.assertEqual(payoutRight(s), -2)
+        s = (8,4,6,6,10,9,8,4,7)
+        self.assertEqual(payoutRight(s), -1)
+
+    def test_payoutWrong(self):
+        s = (8,4,6,8,7,9,8,7)
+        self.assertEqual(payoutWrong(s), 0)
+        s = (3,11,12,2,6,7)
+        self.assertEqual(payoutWrong(s), 1)
+        s = (8,4,6,6,10,9,8,4,7)
+        self.assertEqual(payoutWrong(s), 1)
 
 
 if __name__ == '__main__':

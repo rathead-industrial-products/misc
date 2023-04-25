@@ -2,7 +2,7 @@
 # Make only come/don't come bets, no odds bets.
 #
 
-import sys, simple_table
+import sys, modules.simple_table as simple_table
 
 
 def get_sequence():
