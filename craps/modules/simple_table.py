@@ -21,11 +21,6 @@ class table():
         self.dont_place  = {}
         self.payout      = 0
         self.dont_payout = 0
-        self.comeout     = True         # next roll status
-        self.seven_out   = False        # last roll status
-        self.svn11       = False
-        self.crap        = False
-        self.crap_bar    = False
 
     def roll(self, die1_or_total, die2=None):
         if die2 != None:
@@ -93,7 +88,7 @@ class table():
         self.dont_payout = 0
         return(payout)
 
-    def _action(self, throw):
+    def action(self, throw):
         # be the boxman 
 
         # right player
@@ -241,10 +236,10 @@ class TestTable(unittest.TestCase):
         t = table()
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(6)                        # establish point
+        t.action(6)                        # establish point
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(7)                        # seven-out
+        t.action(7)                        # seven-out
         self.assertEqual(t.payout, 2)       # come bet paid
         self.assertEqual(t.dont_payout, 2)  # dont place bet paid
 
@@ -253,7 +248,7 @@ class TestTable(unittest.TestCase):
         for c in CRAPS:     # shooter has not established a point yet
             t.comeBet(1)
             t.dontComeBet(1)
-            t._action(c)
+            t.action(c)
             self.assertEqual(t.come, 0)     # come bet is lost
             self.assertEqual(t.payout, 0)
             if c != BAR:
@@ -268,13 +263,13 @@ class TestTable(unittest.TestCase):
         t = table()
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(6)                        # establish point
+        t.action(6)                        # establish point
         self.assertEqual(t.come, 0)         # come bet moved to point
         self.assertEqual(t.dont_come, 0)
         for c in CRAPS:
             t.comeBet(1)
             t.dontComeBet(1)
-            t._action(c)
+            t.action(c)
             self.assertEqual(t.come, 0)     # come bet is lost
             self.assertEqual(t.payout, 0)
             if c != BAR:
@@ -289,13 +284,13 @@ class TestTable(unittest.TestCase):
         t = table()
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(6)                        # establish point
+        t.action(6)                        # establish point
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(4)                        # another number working
+        t.action(4)                        # another number working
         t.comeBet(2)                        # double come bet to cover potential 7-out
         t.dontComeBet(2)
-        t._action(7)                        # seven-out
+        t.action(7)                        # seven-out
         self.assertEqual(t.payout, 4)       # come payout + returned bet
         self.assertEqual(t.dont_payout, 4)  # lost dont come, points paid off
 
@@ -303,10 +298,10 @@ class TestTable(unittest.TestCase):
         t = table()
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(6)                        # establish point
+        t.action(6)                        # establish point
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(6)                        # make point
+        t.action(6)                        # make point
         self.assertEqual(t.payout, 2)       # point paid, bet returned
         self.assertEqual(t.dont_payout, 0)  # dont point lost
         self.assertEqual(t.place[6], 1)     # place bet off/on
@@ -318,13 +313,13 @@ class TestTable(unittest.TestCase):
         t = table()
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(6)                        # establish point
+        t.action(6)                        # establish point
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(4)                        # another point
+        t.action(4)                        # another point
         t.comeBet(1)
         t.dontComeBet(1)
-        t._action(7)                        # 7-out
+        t.action(7)                        # 7-out
         self.assertEqual(t.payout, 2)       # come bet paid
         self.assertEqual(t.dont_payout, 4)  # points paid, dont come bet lost
         self.assertEqual(t.workingPointsRight(), [])    # no place bets working
@@ -335,18 +330,16 @@ class TestTable(unittest.TestCase):
         t = table()
         for s in SEQUENCE:
             t.dontComeBet(1)
-            t._action(s)
+            t.action(s)
         self.assertEqual(t.collectPayoutWrong(), 2)
 
     def test_table_action_establish_point_no_come_dont_come(self):
         t = table()
         # no come or don't come bet
-        t._action(6)
+        t.action(6)
         self.assertEqual(t.workingPointsWrong(), [])
         self.assertEqual(t.workingPointsRight(), [])
 
-    # tests
-    # comeout, seven_out, svn11, crap, crap_bar
 
 
 if __name__ == '__main__':
