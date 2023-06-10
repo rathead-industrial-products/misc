@@ -1,21 +1,27 @@
-glossery
+Glossery
 --------
-Sequence: A series of rolls. A shooter's sequence is the entirety
-of the shooter's tenure, from the first roll to the final 7-out.
+Roll: One throw of the dice.
+
+Sequence: A series of rolls ending with a 7. The length of a sequence
+can be as short as one roll.
+
+Trial: A collection of sequences totaling at least 100 rolls. A trial
+is complete on the first 7 rolled after 99 rolls.
+
 
 Roll Analysis
 -------------
 Analysis of dice and roll behavior, independent of any wagering.
-1. Total rolls per shooter
+1. Total rolls per Sequence
 	Histogram of sequence length vs number of occurrences
-2. Points made per shooter
+2. Points made per Sequence
 	Histogram of points made vs number of occurrences
-3. Points covered per shooter
+3. Points covered per Sequence
 	Histogram of points covered vs number of occurrences
 4. Total number of points made
-	3x Histogram of points made vs roll length (mean, median, mode)
+	3x Histogram of points made vs Sequence length (mean, median, mode)
 5. Total number of points covered
-	3x Histogram of points covered vs roll length (mean, median, mode)
+	3x Histogram of points covered vs Sequence length (mean, median, mode)
 6. Points covered vs points made
 	Mean number of points covered per point made
 	Mean number of points made per point covered
@@ -24,12 +30,12 @@ come_dont_come_baseline.py
 --------------------------
 Gemerate baseline data set for pass/come don't pass/don't come betting.
 
-For each shooter, bet 1 unit on come (don't come) every roll.
-After shooter 7s-out, calculate total shooter's payout.
-Aggregate data across ** many ** shooters.
+Bet 1 unit on come (don't come) every roll.
+After Sequence 7s-out, calculate total Sequence payout.
+Aggregate data across ** many ** Sequences.
 
 Summarize data:
-For each roll of length n, calculate:
+For each Sequence of length n, calculate:
 	payout					(mean, median, mode, and std dev)
 	Number of points made	 		(mean, median, mode, and std dev)
 	Number of points riding at 7-out	(mean, median, mode, and std dev)

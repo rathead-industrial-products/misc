@@ -17,13 +17,13 @@
 # Plot number of rolls n vs:
 #	mean payout or bankroll with std dev error bars for:
 #       rolls of length n
-#       bankroll at n for rolls of lenght > n
+#       bankroll at n for rolls of length > n
 #
 
-import sys; sys.path.append('../modules')
-import roll, simple_table
+import sys; sys.path.append('/Users/mitchell/Desktop/github-rathead/misc/craps')
+from modules import roll, simple_table
 
-N_SHOOTERS = 100000
+N_SHOOTERS = 9
  
 def longestSeq(shooters):
     # find the longest roll sequence out of all the shooters
@@ -51,12 +51,12 @@ def writeCSV(file_name, data_series=[(),(),()], column_headers= ()):
         f.write('\n')
     f.close()
 
-
+'''
 def collectBets(throw, table, bank):
     # right
     if table.seven_out:
         bank['bal_rt
-
+'''
 
 
 
@@ -64,21 +64,21 @@ def collectBets(throw, table, bank):
 # Main
 #
 
-bank = ['bal_rt': 0, 'wrk_rt': 0, 'bal_wr': 0, 'wrk_wr': 0]        # right balance, right working, wrong balance, wrong working
-table = simple_table()
+#bank = ['bal_rt': 0, 'wrk_rt': 0, 'bal_wr': 0, 'wrk_wr': 0]        # right balance, right working, wrong balance, wrong working
+table = simple_table.table()
 
 shooters = [roll.seq() for i in range(N_SHOOTERS)]
-
+'''
 for s in shooters:
     for throw in s:
         table.comeBet(1)
         working_right += 1
         table.dontComeBet(1)
         working_wrong += 1
-        table._action(throw)
-        # right begging
+        table.action(throw)
+        # right betting
         if throw in 
-
+'''
 
 hist_right = []
 hist_wrong = []
@@ -98,8 +98,9 @@ for i in range(longestSeq(shooters)+1): # calculate statistics on multiple resul
 
 avg_right = [s[0] if len(s) else 0 for s in stats_right]
 avg_wrong = [s[0] if len(s) else 0 for s in stats_wrong]
+print (avg_right, avg_wrong)
 
-writeCSV("come_baseline.csv", (avg_right, avg_wrong), ("come payout vs roll length", "don't come payout vs roll length"))
+#writeCSV("come_baseline.csv", (avg_right, avg_wrong), ("come payout vs roll length", "don't come payout vs roll length"))
 
 """
 roll_length = []
