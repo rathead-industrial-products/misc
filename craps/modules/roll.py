@@ -1,8 +1,8 @@
 #
 # Module
 # Roll the dice for a craps game.
-# Create a single shooter sequence of rolls, ending with shooter's 7-out
-# Analyze roll sequences
+# Create a single sequence defined as a series of rolls ending with a 7.
+# Analyze roll sequences.
 #
 
 import random, statistics
@@ -21,24 +21,11 @@ def dice():
 def throw():
     return (sum(dice()))
 
-def _seqEnd(seq):
-    # return True if the last roll of seq is a 7-out
-    point = 0   # point off
-    for i in range(len(seq)):
-        roll = seq[i]
-        if not point and roll in POINTS:
-            point = roll    # point on
-        elif roll == point:
-            point = 0       # point off
-        elif point and roll == 7:   # 7-out
-            assert(i == len(seq) - 1)   # 7-out must be final roll of sequence
-            return (True)
-    return (False)
-
 def seq():
-    # return a single shooter's roll sequence, ending on shooters 7-out.
-    seq = [throw(), throw()]
-    while not _seqEnd(seq):
+    # return a series of rolls ending with a 7.
+    # a sequence may be as short as one roll
+    seq = [throw()]
+    while not seq[-1] == 7:
         seq.append(throw())
     return (seq)
 
@@ -51,15 +38,13 @@ def meanMedianModeStdDev(data):
     else:             sd = None
     return (round(statistics.mean(data),1), statistics.median(data), mode, sd)
 
-#
-# seq is a single shooter's complete tenure
-# from first roll to final 7-out
+
 
 def rollLength(seq):
     return (len(seq))
 
 def pointsMade(seq):
-    # return the number of points made during a shooter's tenure
+    # return the number of points made during sequence
     # assuming continuous come betting
     points_covered = []
     points_made = 0
@@ -69,7 +54,7 @@ def pointsMade(seq):
     return (points_made)
 
 def pointsRiding(seq):
-    # return the number of points still riding when shooter 7s-out
+    # return the number of points still riding when sequence ends
     # assuming continuous come betting
     points_covered = []
     for roll in seq:
@@ -99,11 +84,11 @@ def crapsWrong(seq):
     return (c)    
 
 def payoutRight(seq):
-    # assuming continuous come betting compute the payout for the entire shooter's tenure
+    # assuming continuous come betting compute the payout for the entire sequence
     return (pointsMade(seq) -pointsRiding(seq) + svn11(seq) - crapsRight(seq))
 
 def payoutWrong(seq):
-    # assuming continuous don't come betting compute the payout for the entire shooter's tenure
+    # assuming continuous don't come betting compute the payout for the entire sequence
     return (-pointsMade(seq) +pointsRiding(seq) - svn11(seq) + crapsWrong(seq))
 
 
@@ -123,40 +108,6 @@ seed()
 import unittest
 
 class TestSeqEnd(unittest.TestCase):
-    def test_sequence_end(self):
-        s = (8,7)
-        self.assertTrue(_seqEnd(s))
-        s = (7,4,11,8)
-        self.assertFalse(_seqEnd(s))
-        s = (7,4,11,8,4)
-        self.assertFalse(_seqEnd(s))
-        s = (7,4,11,8,4,7)
-        self.assertFalse(_seqEnd(s))
-        s = (7,3,10,5)
-        self.assertFalse(_seqEnd(s))
-        s = (7,3,10,5,5)
-        self.assertFalse(_seqEnd(s))
-        s = (7,3,10,5,5,7)
-        self.assertTrue(_seqEnd(s))
-        s = (8,4,6,6,10,9,8)
-        self.assertFalse(_seqEnd(s))
-        s = (8,4,6,6,10,9,8,7)
-        self.assertFalse(_seqEnd(s))
-        s = (7, 8)
-        self.assertFalse(_seqEnd(s))
-        s = (8,7,10)
-        self.assertRaises(Exception, _seqEnd, s)
-        s = (8,4,6,8,7,9,8,7)
-        self.assertTrue(_seqEnd(s))
-        s = (3,11,12,2,6,7)
-        self.assertTrue(_seqEnd(s))
-        s = (8,4,6,6,10,9,7)
-        self.assertTrue(_seqEnd(s))
-        s = (8,)
-        self.assertFalse(_seqEnd(s))
-        s = (4,5,6,7,2,10,10,8,7)
-        self.assertRaises(Exception, _seqEnd, s)
-
     def test_seq(self):
         seed()
         seq1 = [5, 4, 6, 8, 8, 4, 10, 7]
@@ -167,7 +118,7 @@ class TestSeqEnd(unittest.TestCase):
         self.assertEqual(rollLength(s), 8)
 
     def test_pointsMade(self):
-        s = (8,4,6,8,7,9,8,7)
+        s = (8,4,6,8,9,8,7)
         self.assertEqual(pointsMade(s), 2)
         s = (3,11,12,2,6,7)
         self.assertEqual(pointsMade(s), 0)
@@ -175,7 +126,7 @@ class TestSeqEnd(unittest.TestCase):
         self.assertEqual(pointsMade(s), 3)
 
     def test_pointsRiding(self):
-        s = (8,4,6,8,7,9,8,7)
+        s = (8,4,6,8,9,8,7)
         self.assertEqual(pointsRiding(s), 4)
         s = (3,11,12,2,6,7)
         self.assertEqual(pointsRiding(s), 1)
@@ -183,15 +134,15 @@ class TestSeqEnd(unittest.TestCase):
         self.assertEqual(pointsRiding(s), 5)
 
     def test_svn11(self):
-        s = (8,4,6,8,7,9,8,7)
-        self.assertEqual(svn11(s), 2)
+        s = (8,4,6,8,9,8,7)
+        self.assertEqual(svn11(s), 1)
         s = (3,11,12,2,6,7)
         self.assertEqual(svn11(s), 2)
         s = (8,4,6,6,10,9,8,4,7)
         self.assertEqual(svn11(s), 1)
 
     def test_crapsRight(self):
-        s = (8,4,6,8,7,9,8,7)
+        s = (8,4,6,8,9,8,7)
         self.assertEqual(crapsRight(s), 0)
         s = (3,11,12,2,6,7)
         self.assertEqual(crapsRight(s), 3)
@@ -199,7 +150,7 @@ class TestSeqEnd(unittest.TestCase):
         self.assertEqual(crapsRight(s), 0)
 
     def test_crapsWrong(self):
-        s = (8,4,6,8,7,9,8,7)
+        s = (8,4,6,8,9,8,7)
         self.assertEqual(crapsWrong(s), 0)
         s = (3,11,12,2,6,7)
         self.assertEqual(crapsWrong(s), 2)
@@ -207,16 +158,16 @@ class TestSeqEnd(unittest.TestCase):
         self.assertEqual(crapsWrong(s), 0)
 
     def test_payoutRight(self):
-        s = (8,4,6,8,7,9,8,7)
-        self.assertEqual(payoutRight(s), 0)
+        s = (8,4,6,8,9,8,7)
+        self.assertEqual(payoutRight(s), -1)
         s = (3,11,12,2,6,7)
         self.assertEqual(payoutRight(s), -2)
         s = (8,4,6,6,10,9,8,4,7)
         self.assertEqual(payoutRight(s), -1)
 
     def test_payoutWrong(self):
-        s = (8,4,6,8,7,9,8,7)
-        self.assertEqual(payoutWrong(s), 0)
+        s = (8,4,6,8,9,8,7)
+        self.assertEqual(payoutWrong(s), 1)
         s = (3,11,12,2,6,7)
         self.assertEqual(payoutWrong(s), 1)
         s = (8,4,6,6,10,9,8,4,7)
