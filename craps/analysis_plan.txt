@@ -5,8 +5,8 @@ Roll: One throw of the dice.
 Sequence: A series of rolls ending with a 7. The length of a sequence
 can be as short as one roll.
 
-Trial: A collection of sequences totaling at least 100 rolls. A trial
-is complete on the first 7 rolled after 99 rolls.
+Trial(n): A collection of sequences totaling at least n rolls. A trial
+is complete on the first 7 rolled after n-1 rolls.
 
 
 Roll Analysis

@@ -1,7 +1,8 @@
 #
 # Module
 # Roll the dice for a craps game.
-# Create a single sequence defined as a series of rolls ending with a 7.
+# A sequence is defined as a series of rolls ending with a 7.
+# A trial(n) is collection of sequences totaling at least n rolls.
 # Analyze roll sequences.
 #
 
@@ -29,6 +30,16 @@ def seq():
         seq.append(throw())
     return (seq)
 
+def trial(n):
+    # return a seris of sequences totalling at least n rolls:
+    l = 0
+    trial = [seq()]
+    l += len(trial[-1])
+    while l < n:
+        trial.append(seq())
+        l += len(trial[-1])
+    return (trial)
+
 
 def meanMedianModeStdDev(data):
     # statistics.mode (version < 3.8) will generate an exception if no unique mode found.
@@ -42,6 +53,11 @@ def meanMedianModeStdDev(data):
 
 def rollLength(seq):
     return (len(seq))
+
+def trialLength(trial):
+    l = 0
+    for s in trial: l += len(s)
+    return (l)
 
 def pointsMade(seq):
     # return the number of points made during sequence
@@ -172,6 +188,18 @@ class TestSeqEnd(unittest.TestCase):
         self.assertEqual(payoutWrong(s), 1)
         s = (8,4,6,6,10,9,8,4,7)
         self.assertEqual(payoutWrong(s), 1)
+
+    def test_trial_and_trialLength(self):
+        t = trial(1)
+        self.assertEqual(len(t), 1)
+        t = trial(100)
+        l = 0
+        for s in t[:-1]: l += len(s)
+        self.assertTrue(l < 100)
+        l += len(t[-1])
+        self.assertTrue(l >= 100)
+        self.assertEqual(l, trialLength(t))
+                  
 
 
 if __name__ == '__main__':
