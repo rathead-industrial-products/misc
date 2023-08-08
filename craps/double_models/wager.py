@@ -6,9 +6,12 @@
 class wager():
     history    = []
     unresolved = []
+    ordinal    = 1
 
     def __init__(self, bet=1, come=True):
         # default to a single unit come bet
+        self.ordinal    =  wager.ordinal
+        wager.ordinal  += 1
         self.bet        = bet  
         self.come       = come          # true if come bet, false if don't come bet
         self.point      = 0             # nonzero if a point has been established
@@ -57,7 +60,6 @@ class wager():
        
         self.resolution = throw
         self.resolved = True
-        print ("appending to history, deleting from unresolved, pt/resolved = %d / %d" % (self.point, self.resolution))
         wager.history.append(self)
         wager.unresolved.remove(self)
         return (True)                       # wager resolved
@@ -80,14 +82,14 @@ class TestWager(unittest.TestCase):
     def _dumpWager(self, w):
         print (w.bet, w.come, w.point, w.resolved, w.resolution, w.win)
 
-    def _dumpWagerQueueLen(self):
+    def _dumpWagerQueues(self):
         hl = []
         ul = []
         for h in wager.history:
             hl.append("%s/%s" % (h.point, h.resolution))
         for u in wager.unresolved:
             ul.append("%s/%s" % (u.point, u.resolution))
-        print (hl, ul)
+        return (hl, ul)
 
     def test_wager_init(self):
         w = wager()
@@ -166,10 +168,10 @@ class TestWager(unittest.TestCase):
         n_unresolved = [1, 2, 3, 4, 4, 4, 5, 0, 0, 1]
         for i in  range(len(trial)):
             w = wager()
-            for u in wager.unresolved:
+            #(hl, ul) = self._dumpWagerQueues()
+            #print (hl, ul, trial[i])
+            for u in wager.unresolved[:]:   # iterate over copy, original may be modified
                 u.roll(trial[i])
-                self._dumpWager(u)
-                self._dumpWagerQueueLen()
             self.assertTrue(len(wager.unresolved) == n_unresolved[i])
 
 '''

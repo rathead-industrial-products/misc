@@ -30,14 +30,17 @@ def seq():
         seq.append(throw())
     return (seq)
 
-def trial(n):
+def trial(n, flat=False):
     # return a seris of sequences totalling at least n rolls:
+    # if flat == True return a single flat list instead of a list of sequences
     l = 0
     trial = [seq()]
     l += len(trial[-1])
     while l < n:
         trial.append(seq())
         l += len(trial[-1])
+    if flat:
+        trial = [item for sublist in trial for item in sublist]
     return (trial)
 
 
