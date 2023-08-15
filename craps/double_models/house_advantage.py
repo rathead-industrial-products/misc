@@ -2,7 +2,7 @@
 #
 #
 
-TRIAL_LEN    = 360000    # each possible roll should appear ~10000 times
+TRIAL_LEN    = 36    # each possible roll should appear ~10000 times
 TRIALS       = 10        # must be > 1 or list operation will fail
 
 
@@ -29,13 +29,17 @@ def profile_singleComeBet(throw, prev_throw, last_bet, table):
     return (bet, table.collectPayoutRight() - bet)
 
 def profile_singleComeBarCraps(throw, prev_throw, last_bet, table):
-    if throw in (2, 3, 12): return (last_bet, 0) # pretend this throw never happened
+    # regular come bet craps
+    # 2, 3, 12 are ignored
+    if throw in (2, 3, 12): return (0, 0) # pretend this throw never happened
     bet = 1
     table.comeBet(bet)
     table.action(throw)    
     return (bet, table.collectPayoutRight() - bet)
 
 def profile_singleComeDoubleCraps(throw, prev_throw, last_bet, table):
+    # regular come bet craps
+    # on throws of 2, 3, 12 (loser) double the next bet
     bet = 1
     if prev_throw in (2, 3, 12): bet = 2 * last_bet
     table.comeBet(bet)
@@ -43,12 +47,36 @@ def profile_singleComeDoubleCraps(throw, prev_throw, last_bet, table):
     return (bet, table.collectPayoutRight() - bet)
 
 def profile_singleComeDoubleFirstBarCraps(throw, prev_throw, last_bet, table):
+    # regular come bet craps
+    # 2, 3, 12 are ignored
+    # first point or single roll of 7 is doubled bet
     global come_out
     if prev_throw == 0: come_out = True
     if throw in (2, 3, 12): return (0,0)    # ignore crap
     bet = 1
     if come_out: bet = 2     # double first point
     if throw in (4, 5, 6, 8, 9, 10): come_out = False     # point established, now play to resolution
+    table.comeBet(bet)
+    table.action(throw)    
+    return (bet, table.collectPayoutRight() - bet)
+
+def profile_singleComeAfterCraps(throw, prev_throw, last_bet, table):
+    # do not bet on 7,11, or any point until craps (2, 3, 12)
+    # bet on roll following craps unless it is craps, then ignore
+    if throw in (2, 3, 12) and prev_throw in (2, 3, 12): return (0,0)    # ignore sequential craps
+    bet = 0
+    if prev_throw in (2, 3, 12): bet = 1
+    table.comeBet(bet)
+    table.action(throw)    
+    return (bet, table.collectPayoutRight() - bet)
+
+def profile_singleComeCrapsAndNextNotCraps(throw, prev_throw, last_bet, table):
+    # do not bet on 7,11, or any point until...
+    # bet on craps (2, 3, 12)
+    # bet on roll following craps unless it is craps, then ignore
+    if throw in (2, 3, 12) and prev_throw in (2, 3, 12): return (0,0)    # ignore sequential craps
+    bet = 0
+    if throw in (2, 3, 12) or prev_throw in (2, 3, 12): bet = 1
     table.comeBet(bet)
     table.action(throw)    
     return (bet, table.collectPayoutRight() - bet)
@@ -175,9 +203,9 @@ def run(trials, trial_len, profile):
             total_bet += last_bet
             max_bet = max(max_bet, last_bet)
             bank += win
-            if seed == 2:
+            if win:
                 pass
-                #print (throw, last_bet, win, bank)
+                print (throw, prev_throw, last_bet, win, bank)
             prev_throw = throw
         results.append(bank)
         total_bets.append(total_bet)
@@ -190,11 +218,13 @@ def runWrapper(profile, description):
 
 # Main
 
-runWrapper(profile_singleComeBet, "Single Come Bet:\t\t")
-runWrapper(profile_singleComeBarCraps, "Single Come Bar Craps:\t\t")
+#runWrapper(profile_singleComeBet, "Single Come Bet:\t\t")
+#runWrapper(profile_singleComeBarCraps, "Single Come Bar Craps:\t\t")
+#runWrapper(profile_singleComeDoubleCraps, "Single Come Double Craps:\t\t")
+#runWrapper(profile_singleComeDoubleFirstBarCraps, "Single Come Double First Bar Craps:\t\t")
 
-runWrapper(profile_singleComeDoubleCraps, "Single Come Double Craps:\t\t")
-runWrapper(profile_singleComeDoubleFirstBarCraps, "Single Come Double Bar Craps:\t\t")
+runWrapper(profile_singleComeAfterCraps, "Single Come After Craps:\t\t")
+#runWrapper(profile_singleComeCrapsAndNextNotCraps, "Single Come Craps and Next Not Craps:\t\t")
 
 '''
 (total_bets, results, max_bet) = run(TRIALS, TRIAL_LEN, profile_singleDontComeBet)
