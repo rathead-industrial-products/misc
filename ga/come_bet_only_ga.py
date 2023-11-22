@@ -20,12 +20,12 @@ import multiprocessing as mp
 import random, sys, time
 import simple_table
 
-DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
+DICE_SEQUENCES = "../craps/sequence7/sequence7_100K.txt"
 
-POPULATION_SIZE     = 40         # 20 - 40
+POPULATION_SIZE     = 20         # 20 - 40
 CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
 MUTATION_RATE       = 0.05      # how many chromosomes are mutated in one generation ( < 0.05 )
-GENERATIONS         = 100
+GENERATIONS         = 50
 N_GENES             = 9
 N_GENE_BETS_WORKING = 6
 GENE_CRAP           = 7
@@ -158,6 +158,8 @@ if __name__ == '__main__':
 
     pop = rankPopulation(pop)
     print ("Generation", g)
-    for p in pop: print (p, fitness(roll_seq)(p))
+    #for p in pop: print (p, fitness(roll_seq)(p))
+    print (pop[0], fitness(roll_seq)(pop[0]))
+
 
     print('Execution time = %0.1f sec ' % (time.time() - start_time))
