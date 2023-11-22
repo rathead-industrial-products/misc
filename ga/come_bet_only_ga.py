@@ -20,12 +20,12 @@ import multiprocessing as mp
 import random, sys, time
 import simple_table
 
-DICE_SEQUENCES = "../craps/sequence7/sequence7_100K.txt"
+DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
 
-POPULATION_SIZE     = 20         # 20 - 40
+POPULATION_SIZE     = 30         # 20 - 40
 CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
 MUTATION_RATE       = 0.05      # how many chromosomes are mutated in one generation ( < 0.05 )
-GENERATIONS         = 50
+GENERATIONS         = 100
 N_GENES             = 9
 N_GENE_BETS_WORKING = 6
 GENE_CRAP           = 7
@@ -33,8 +33,8 @@ GENE_11             = 8
 
 RANDOM_SEED     = 314
 
-MIN_BET = 1
-MAX_BET = 5
+MIN_BET = 0
+MAX_BET = 10
 
 def randomGeneValue(gene):
     if gene == GENE_CRAP or gene == GENE_11:
@@ -48,6 +48,7 @@ def initPopulation(pop_size, N_GENES):
         c = []
         for g in range(N_GENES):
             c.append(randomGeneValue(g))
+        #c = [5,5,5,5,5,5,5,-5,-5]
         population.append(c)
     return (population)
 
@@ -79,7 +80,7 @@ class fitness:
     def __init__(self, roll_seq):
         self.roll_seq = roll_seq
 
-    def __call__(self, individual):
+    def __call__(self, individual, show=False):
         t = simple_table.table()
         last_throw = 0
         bank = 0
@@ -99,9 +100,9 @@ class fitness:
                 payout = t.collectPayoutRight()    # table payoff including amount bet
                 bank += payout    # table payoff including amount bet
                 # bank += t.collectPayoutRight()    # table payoff including amount bet
-                # print (bet, throw, payout, bank)
+                if show: print (bet, throw, payout, bank)
                 last_throw = throw
-            # print (s, bank)
+            if show: print (s, bank)
         return (bank)
 
 def rankPopulation(population):
@@ -157,9 +158,9 @@ if __name__ == '__main__':
         mutate(pop, MUTATION_RATE)
 
     pop = rankPopulation(pop)
-    print ("Generation", g)
+    print ("Generation", GENERATIONS)
     #for p in pop: print (p, fitness(roll_seq)(p))
-    print (pop[0], fitness(roll_seq)(pop[0]))
+    print (pop[0], fitness(roll_seq)(pop[0], False))
 
 
     print('Execution time = %0.1f sec ' % (time.time() - start_time))
