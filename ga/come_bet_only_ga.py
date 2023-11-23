@@ -20,12 +20,12 @@ import multiprocessing as mp
 import random, sys, time
 import simple_table
 
-DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
+DICE_SEQUENCES = "../craps/sequence7/sequence7_1K.txt"
 
 POPULATION_SIZE     = 30         # 20 - 40
 CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
 MUTATION_RATE       = 0.05      # how many chromosomes are mutated in one generation ( < 0.05 )
-GENERATIONS         = 100
+GENERATIONS         = 50
 N_GENES             = 9
 N_GENE_BETS_WORKING = 6
 GENE_CRAP           = 7
@@ -48,7 +48,7 @@ def initPopulation(pop_size, N_GENES):
         c = []
         for g in range(N_GENES):
             c.append(randomGeneValue(g))
-        #c = [5,5,5,5,5,5,5,-5,-5]
+        #c = [1,1,1,1,1,1,1,0,0]
         population.append(c)
     return (population)
 
@@ -84,6 +84,7 @@ class fitness:
         t = simple_table.table()
         last_throw = 0
         bank = 0
+        total_bet = 0
         for s in self.roll_seq:
             for throw in s:
                 # bet is dictated by genes
@@ -96,6 +97,7 @@ class fitness:
                     bet = max(0, bet)       # can't bet < 0
                 t.comeBet(bet)
                 bank -= bet
+                total_bet += bet
                 t.action(throw)
                 payout = t.collectPayoutRight()    # table payoff including amount bet
                 bank += payout    # table payoff including amount bet
@@ -103,19 +105,13 @@ class fitness:
                 if show: print (bet, throw, payout, bank)
                 last_throw = throw
             if show: print (s, bank)
-        return (bank)
+        return (bank/total_bet if total_bet else 0.0)
 
 def rankPopulation(population):
     with mp.Pool() as p:
         fit = p.map(fitness(roll_seq), population)      # fit order is same as population order (map preserves order)
     rp_ranked_by_fit = sorted(zip(fit, population), reverse=True)
     (fit, rp) = zip(*rp_ranked_by_fit)
-
-    #print ("d", rp_ranked_by_fit)
-    #print ("d", population)
-    #print ("d", rp)
-
-    #rp = sorted(population, key=fitness(roll_seq), reverse=True)
     return (rp)
 
 def getRollSequences():
@@ -126,6 +122,14 @@ def getRollSequences():
             l = tuple([int(i) for i in lstr])
             sequence.append(l)
         return (tuple(sequence))
+    
+def showResults(generation, roll_seq, gene, show_gene=False):
+    pct_rtn = fitness(roll_seq)(gene, False) * 100
+    if show_gene:
+        print ("Generation %d, %s, %.1f" % (generation, gene, pct_rtn))
+    else:
+        print ("Generation %d, %.1f" % (generation, pct_rtn))
+
 #
 # Main 
 #
@@ -137,11 +141,7 @@ if __name__ == '__main__':
 
     for g in range(GENERATIONS):
         pop = rankPopulation(pop)
-        print ("Generation", g)
-
-        if g % 10 == 0:
-            print (pop[0], fitness(roll_seq)(pop[0]))
-            #print()
+        showResults(g, roll_seq, pop[0], not g%10)
 
         pairs = selection(pop)
         pop = []
@@ -158,9 +158,6 @@ if __name__ == '__main__':
         mutate(pop, MUTATION_RATE)
 
     pop = rankPopulation(pop)
-    print ("Generation", GENERATIONS)
-    #for p in pop: print (p, fitness(roll_seq)(p))
-    print (pop[0], fitness(roll_seq)(pop[0], False))
-
+    showResults(GENERATIONS, roll_seq, pop[0], True)
 
     print('Execution time = %0.1f sec ' % (time.time() - start_time))
