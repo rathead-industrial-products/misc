@@ -20,7 +20,7 @@ import multiprocessing as mp
 import random, sys, time
 import simple_table
 
-DICE_SEQUENCES = "../craps/sequence7/sequence7_1K.txt"
+DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
 
 POPULATION_SIZE     = 30         # 20 - 40
 CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
