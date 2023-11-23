@@ -94,6 +94,7 @@ class table():
         # right player
         if throw in self.place.keys():
             self.payout += 2 * self.place[throw]
+            del(self.place[throw])
         if throw in POINTS and self.come: 
             self.place[throw] = self.come
         if throw in SVN_11:
@@ -339,6 +340,15 @@ class TestTable(unittest.TestCase):
         t.action(6)
         self.assertEqual(t.workingPointsWrong(), [])
         self.assertEqual(t.workingPointsRight(), [])
+
+    def test_table_action_remove_bet_after_point(self):
+        t = table()
+        t.comeBet(1)
+        t.action(5)                        # establish point
+        t.action(5)                        # make point
+        self.assertEqual(t.collectPayoutRight(), 2)
+        t.action(5)
+        self.assertEqual(t.collectPayoutRight(), 0)
 
 
 
