@@ -24,8 +24,8 @@ DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
 
 POPULATION_SIZE     = 30         # 20 - 40
 CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
-MUTATION_RATE       = 0.05      # how many chromosomes are mutated in one generation ( < 0.05 )
-GENERATIONS         = 50
+MUTATION_RATE       = 0.10      # how many chromosomes are mutated in one generation ( < 0.05 )
+GENERATIONS         = 200
 N_GENES             = 9
 N_GENE_BETS_WORKING = 6
 GENE_CRAP           = 7
