@@ -20,9 +20,9 @@ import multiprocessing as mp
 import random, sys, time
 import simple_table
 
-DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
+DICE_SEQUENCES = "../craps/sequence7/sequence7_100K.txt"
 
-POPULATION_SIZE     = 30         # 20 - 40
+POPULATION_SIZE     = 80         # 20 - 40
 CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
 MUTATION_RATE       = 0.10      # how many chromosomes are mutated in one generation ( < 0.05 )
 GENERATIONS         = 50
@@ -48,7 +48,7 @@ def initPopulation(pop_size, N_GENES):
         c = []
         for g in range(N_GENES):
             c.append(randomGeneValue(g))
-        # c = [1, 1, 1, 1, 1, 1, 1, 0, 0]
+        # c = [1, 1, 1, 1, 5, 10, 10, 0, -5]
         population.append(c)
     return (population)
 
