@@ -25,7 +25,7 @@ DICE_SEQUENCES = "../craps/sequence7/sequence7_10K.txt"
 POPULATION_SIZE     = 30         # 20 - 40
 CROSSOVER_RATE      = 0.95      # the chance that two chromosomes exchange some of their parts
 MUTATION_RATE       = 0.10      # how many chromosomes are mutated in one generation ( < 0.05 )
-GENERATIONS         = 200
+GENERATIONS         = 50
 N_GENES             = 9
 N_GENE_BETS_WORKING = 6
 GENE_CRAP           = 7
@@ -48,7 +48,7 @@ def initPopulation(pop_size, N_GENES):
         c = []
         for g in range(N_GENES):
             c.append(randomGeneValue(g))
-        #c = [1,1,1,1,1,1,1,0,0]
+        #c = [1, 10, 0, 10, 10, 10, 10, -1, -10]
         population.append(c)
     return (population)
 
@@ -126,9 +126,9 @@ def getRollSequences():
 def showResults(generation, roll_seq, gene, show_gene=False):
     pct_rtn = fitness(roll_seq)(gene, False) * 100
     if show_gene:
-        print ("Generation %d, %s, %.1f" % (generation, gene, pct_rtn))
+        print ("Generation %d, %s, %.2f" % (generation, gene, pct_rtn))
     else:
-        print ("Generation %d, %.1f" % (generation, pct_rtn))
+        print ("Generation %d, %.2f" % (generation, pct_rtn))
 
 #
 # Main 
