@@ -33,7 +33,7 @@ GENE_11             = 8
 
 RANDOM_SEED     = 314
 
-MIN_BET = 0
+MIN_BET = 1     # must be at least 1 or solution will converge on zero
 MAX_BET = 10
 
 def randomGeneValue(gene):
@@ -48,7 +48,7 @@ def initPopulation(pop_size, N_GENES):
         c = []
         for g in range(N_GENES):
             c.append(randomGeneValue(g))
-        #c = [1, 10, 0, 10, 10, 10, 10, -1, -10]
+        # c = [1, 1, 1, 1, 1, 1, 1, 0, 0]
         population.append(c)
     return (population)
 
@@ -79,12 +79,14 @@ def mutate(population, mutation_rate):
 class fitness:
     def __init__(self, roll_seq):
         self.roll_seq = roll_seq
+        self.bank = 0
+        self.total_bet = 0
 
     def __call__(self, individual, show=False):
         t = simple_table.table()
         last_throw = 0
-        bank = 0
-        total_bet = 0
+        self.bank = 0
+        self.total_bet = 0
         for s in self.roll_seq:
             for throw in s:
                 # bet is dictated by genes
@@ -96,16 +98,16 @@ class fitness:
                     bet += individual[GENE_11]
                     bet = max(0, bet)       # can't bet < 0
                 t.comeBet(bet)
-                bank -= bet
-                total_bet += bet
+                self.bank -= bet
+                self.total_bet += bet
                 t.action(throw)
                 payout = t.collectPayoutRight()    # table payoff including amount bet
-                bank += payout    # table payoff including amount bet
+                self.bank += payout    # table payoff including amount bet
                 # bank += t.collectPayoutRight()    # table payoff including amount bet
-                if show: print (bet, throw, payout, bank)
+                if show: print (bet, throw, payout, self.bank)
                 last_throw = throw
-            if show: print (s, bank)
-        return (bank/total_bet if total_bet else 0.0)
+            if show: print (s, self.bank)
+        return (self.bank/self.total_bet if self.total_bet else 0.0)
 
 def rankPopulation(population):
     with mp.Pool() as p:
@@ -124,9 +126,11 @@ def getRollSequences():
         return (tuple(sequence))
     
 def showResults(generation, roll_seq, gene, show_gene=False):
-    pct_rtn = fitness(roll_seq)(gene, False) * 100
+    DEBUG_SHOW_INDIVIDUAL_ROLLS = False
+    f = fitness(roll_seq)
+    pct_rtn = f(gene, DEBUG_SHOW_INDIVIDUAL_ROLLS) * 100
     if show_gene:
-        print ("Generation %d, %s, %.2f" % (generation, gene, pct_rtn))
+        print ("Generation %d, %s, win pct = %.2f%%, bank = %d" % (generation, gene, pct_rtn, f.bank))
     else:
         print ("Generation %d, %.2f" % (generation, pct_rtn))
 
