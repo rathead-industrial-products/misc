@@ -6,7 +6,11 @@ import roll
 from wager import wager
 import matplotlib.pyplot as plt
 
-N_ROLLS = 1000000
+CRAP        = (2, 3, 12)
+CRAP_BAR_12 = (2, 3)
+POINT       = (4, 5, 6, 8, 9, 10)
+
+N_ROLLS = 100000
 
 class xlist(list):
     # extend the built-in list type to add a .prev() method
@@ -34,24 +38,45 @@ def _plotSeries(y1, y2=[], label1='', label2=''):
     plt.legend()
     plt.show()
 
-def _runningSum(l):
-    # Return a list where element n is the sum of all elements [0:n] of l
-    s = [l[0]]
-    for e in l[1:]:
-        s.append(s[-1]+e)
-    return (s)
 
 
 trial = roll.trial(N_ROLLS, outcome=True, flat=True)
-(roll_seq, c_outcome, d_outcome) = xlist(zip(*trial))
+(roll_seq, c_outcome, d_outcome) = [xlist(t) for t in zip(*trial)]
 cwager = xlist([])
 dwager = xlist([])
 
-w = wager(roll_seq, c_outcome, d_outcome, wager, dwager)
+w = wager(roll_seq, c_outcome, d_outcome, cwager, dwager)
+
+# roll stats
+# total rolls
+# % of 7-11's
+# % of Craps
+# % of Points
+# longest roll
+from collections import Counter
+total_rolls = len(roll_seq)
+counts = Counter(roll_seq)
+svn11_rolled = 0
+craps_rolled = 0
+points_rolled = 0
+for key in (7, 11): svn11_rolled += counts[key]
+for key in CRAP: craps_rolled += counts[key]
+for key in POINT: points_rolled += counts[key]
+idx7 = [i for i, roll in enumerate(roll_seq) if roll == 7]
+longest_roll = idx7[0]
+for i in range(len(idx7)-1):
+    longest_roll = max(longest_roll, idx7[i+1] - idx7[i])
+print ("Total Rolls", total_rolls)
+print ("Longest Roll", longest_roll)
+print ("Roll Distribution: 7-11 %0.2f%%, Crap %0.2f%%, Point %0.2f%%" % (
+     100*svn11_rolled/total_rolls,
+    -100*craps_rolled/total_rolls,
+     100*points_rolled/total_rolls))
 
 
-print (wager.fitnessCome()/N_ROLLS, wager.fitnessDont/N_ROLLS, wager.maxBetCome, wager.maxBetDont)
-_plotSeries(wager.fitnessArrayCome(), wager.fitnessArrayDont, 'come', 'dont come')
+print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
+_plotSeries(w.fitnessArrayCome(), w.fitnessArrayDont(), 'come', 'dont come')
+
 
 
 #
@@ -59,7 +84,7 @@ _plotSeries(wager.fitnessArrayCome(), wager.fitnessArrayDont, 'come', 'dont come
 #
 import unittest
 
-class TestxListPrev(unittest.TestCase):
+class TestCraps(unittest.TestCase):
     def test_xListPrev(self):
         xl = xlist([])
         self.assertEqual(xl.prev(), 0)
