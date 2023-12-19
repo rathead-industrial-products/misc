@@ -25,17 +25,20 @@ class wager():
         self._fitness()     # calculate cfit, dfit
 
     def _comeWager(self, i):
-        MAX_WAGER_COME = 1024
+        MAX_WAGER_COME = 1e6
         if self.roll.prev(idx=i) in (7, 11):    # restart betting sequence
             w = 1
         elif self.roll.prev(idx=i) in CRAP:     # double wager on loss
             w = 2 * self.cwager.prev(idx=i)
-        else: w = 2 * self.cwager.prev(idx=i)
+        w = 1
         return (min(w, MAX_WAGER_COME))
 
     def _dontWager(self, i):
-        MAX_WAGER_DONT = 100000
+        MAX_WAGER_DONT = 10
         w = 1
+        if self.roll.prev(idx=i) in (7, 11):    # bet lost, increase to recover it
+            w = 3.16 * self.dwager.prev(idx=i)
+        if w > MAX_WAGER_DONT: w = 1            # reset if things are going against you
         return (min(w, MAX_WAGER_DONT))
 
     def _makeWagers(self):
