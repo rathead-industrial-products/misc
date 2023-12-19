@@ -38,7 +38,7 @@ class wager():
         w = 1
         if self.roll.prev(idx=i) in (7, 11):    # bet lost, increase to recover it
             w = 3.16 * self.dwager.prev(idx=i)
-        if w > MAX_WAGER_DONT: w = 1            # reset if things are going against you
+        if self.roll[i] == 7: w = 0
         return (min(w, MAX_WAGER_DONT))
 
     def _makeWagers(self):
