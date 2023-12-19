@@ -29,7 +29,6 @@ class xlist(list):
         if n == 1: prev = prev[0]
         return (prev)
 
-
 def _plotSeries(y1, y2=[], label1='', label2=''):
     fig, ax = plt.subplots()
     ax.plot(y1, label=label1)
@@ -38,9 +37,15 @@ def _plotSeries(y1, y2=[], label1='', label2=''):
     plt.legend()
     plt.show()
 
+def _printList(l):  # print a list seperating items with tabs
+    for item in l:
+        print ("%s\t" % (str(item)), end='')
+    print ()
 
 
-trial = roll.trial(N_ROLLS, outcome=True, flat=True)
+
+
+trial = roll.trial(N_ROLLS, outcome=True, flat=True) #[430:450]
 (roll_seq, c_outcome, d_outcome) = [xlist(t) for t in zip(*trial)]
 cwager = xlist([])
 dwager = xlist([])
@@ -79,12 +84,19 @@ print ("Roll Distribution: 7-11 %0.2f%%, Crap %0.2f%%, Point %0.2f%%" % (
     -100*craps_rolled/total_rolls,
      100*points_rolled/total_rolls))
 
+'''
+print ("roll\t", end=''); _printList (roll_seq)
+print ("outcome\t", end=''); _printList (w.dont)
+print ("loss\t", end=''); _printList ([round(x, 2) for x in w.running_loss_dont_history])
+print ("bet\t", end=''); _printList ([round(x, 2) for x in w.dwager])
+print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
+'''
 
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
 _plotSeries(w.fitnessArrayCome(), w.fitnessArrayDont(), 'come', 'dont come')
-print (roll_seq[841600:841620])
-print (dwager[841600:841620])
-_plotSeries(w.fitnessArrayDont()[841600:841620])
+#print (roll_seq[841600:841620])
+#print (dwager[841600:841620])
+#_plotSeries(w.fitnessArrayDont()[841600:841620])
 #
 
 

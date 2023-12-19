@@ -15,6 +15,10 @@ class wager():
         self.dont = dont_outcome
         self.cwager = come_wager
         self.dwager = dont_wager
+        # more data for wager algorithm
+        self.running_loss_come = 0
+        self.running_loss_dont = 0
+        self.running_loss_dont_history = []
         # self.maxComeWager -- set in _makeWagers
         # self.maxDontWager
         self.cumComeWager = []  # set in _makeWagers
@@ -23,6 +27,7 @@ class wager():
         self.cfit = []      # running win/loss tally at each roll
         self.dfit = []
         self._fitness()     # calculate cfit, dfit
+
 
     def _comeWager(self, i):
         MAX_WAGER_COME = 1e6
@@ -34,11 +39,20 @@ class wager():
         return (min(w, MAX_WAGER_COME))
 
     def _dontWager(self, i):
-        MAX_WAGER_DONT = 10
+        MAX_WAGER_DONT = 1e6
         w = 1
-        if self.roll.prev(idx=i) in (7, 11):    # bet lost, increase to recover it
-            w = 3.16 * self.dwager.prev(idx=i)
-        if self.roll[i] == 7: w = 0
+        if self.roll.prev(idx=i) in (7, 11):    # bet lost, accumulate losses for eventual recovery
+            self.running_loss_dont -= self.dwager.prev(idx=i)
+        if self.dont.prev(idx=i) > 0:           # previous bet won, reduce loss outstanding
+            self.running_loss_dont += self.dwager.prev(idx=i)   # shouldn't matter that point wins are recorded out-of-order?
+        if self.running_loss_dont < 0:
+            w = 3.16 * (-self.running_loss_dont / 4)     # bet 1/4 of the loss outstanding times EV multiplier
+            w = 4 * (-self.running_loss_dont / 4)     # bet 1/4 of the loss outstanding times EV multiplier
+        else:
+            self.running_loss_dont = 0          # reset loss, don't accumulate winnings
+        self.running_loss_dont_history.append(self.running_loss_dont)
+        w = max(1, w)                           # always bet at least 1, don't try to recover small fractional losses
+        if self.pointsCovered(i) > 4: w = 0
         return (min(w, MAX_WAGER_DONT))
 
     def _makeWagers(self):
@@ -68,6 +82,15 @@ class wager():
         for i, item in enumerate(self.dont):
             win_loss += item * self.dwager[i]
             self.dfit.append(win_loss)
+
+    def pointsCovered(self, idx):
+        # find first 7 in roll_seq before i (or beginning of list)
+        # count unique points between that 7 and i
+        start = idx
+        while start != 0 and self.roll[start-1] != 7:
+            start -= 1
+        return (len(set(self.roll[start:idx])))
+
 
     def maxBetCome(self):
         return (self.maxComeWager)
