@@ -10,7 +10,7 @@ CRAP        = (2, 3, 12)
 CRAP_BAR_12 = (2, 3)
 POINT       = (4, 5, 6, 8, 9, 10)
 
-N_ROLLS = 1000000
+N_ROLLS = 1000
 
 class xlist(list):
     # extend the built-in list type to add a .prev() method
@@ -29,11 +29,11 @@ class xlist(list):
         if n == 1: prev = prev[0]
         return (prev)
 
-def _plotSeries(y1, y2=[], label1='', label2=''):
+def _plotSeries(**series):
+    # _plotSeries(('label1':[d1, d2], 'label2:[d3.d4], ... ))
     fig, ax = plt.subplots()
-    ax.plot(y1, label=label1)
-    if y2:
-        ax.plot(y2, label=label2)
+    for label, data in series.items():
+        ax.plot(data, label=label)
     plt.legend()
     plt.show()
 
@@ -93,7 +93,7 @@ print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 '''
 
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
-_plotSeries(w.fitnessArrayCome(), w.fitnessArrayDont(), 'come', 'dont come')
+_plotSeries(come=w.fitnessArrayCome(), dont_come=w.fitnessArrayDont())
 #print (roll_seq[841600:841620])
 #print (dwager[841600:841620])
 #_plotSeries(w.fitnessArrayDont()[841600:841620])

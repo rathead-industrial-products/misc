@@ -2,18 +2,18 @@
 # 
 #
 
-import random
+import random, itertools
 import matplotlib.pyplot as plt
 
 
-N_FLIPS = 1000000
+N_FLIPS = 10000
 
 
-def _plotSeries(y1, y2=[], label1='', label2=''):
+def _plotSeries(**series):
+    # _plotSeries(('label1':[d1, d2], 'label2:[d3.d4], ... ))
     fig, ax = plt.subplots()
-    ax.plot(y1, label=label1)
-    if y2:
-        ax.plot(y2, label=label2)
+    for label, data in series.items():
+        ax.plot(data, label=label)
     plt.legend()
     plt.show()
 
@@ -38,14 +38,26 @@ random.seed(1)
 
 MAX_WAGER = 100
 
+def circuitBreaker(coin_hist):
+    # if there have been five losses in a row anywhere in the last 6 rolls, stop betting
+    consec = 5
+    roll_len = 6
+    if len(coin_hist) >= roll_len:
+        lastseq = coin_hist[-roll_len:]
+        consec_zeros = max([len(list(g)) if k==0 else 0 for k, g in itertools.groupby(lastseq)])
+        if consec_zeros >= consec:
+            return (True)
+        return (False)
+
 for i in range(N_FLIPS):
     if loss < 0:
-        if coin_prev == 0:      # added to loss, recalculate wager
+        if circuitBreaker(hist_coin):
+            wager = 0       # long string of 0's, take a break for awhile
+        elif coin_prev == 0:      # added to loss, recalculate wager
             wager = -loss/4
-            if wager > MAX_WAGER:
-                wager = 16      # reset, start over
-                loss = 0
-        else: pass              # maintain previous wager until loss is recovered
+            last_lost_wager = wager
+        else:               # maintain previous wager until loss is recovered
+            wager = last_lost_wager
     else:
         wager = 16              # default wager
 #    wager = min(wager, MAX_WAGER)
@@ -64,10 +76,14 @@ for i in range(N_FLIPS):
     hist_bank.append(int(bank))
 #    print (coin, wager, loss, bank)
 
-#_printList (hist_coin[1675:1690])
-#_printList (hist_wager[1675:1690])
-#_printList (hist_loss[1675:1690])
-#_printList (hist_bank[1675:1690])
+start=0; end=None
+start=7900; end=8200
+if end and (end-start<=20):
+    _printList (hist_coin[start:end])
+    _printList (hist_wager[start:end])
+    _printList (hist_loss[start:end])
+    _printList (hist_bank[start:end])
+
 print ("max bet", max(hist_wager))
-_plotSeries(hist_loss, hist_bank, 'loss', 'bank')
+_plotSeries(wager=hist_wager[start:end], loss=hist_loss[start:end], bank=hist_bank[start:end])
 
