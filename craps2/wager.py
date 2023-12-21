@@ -90,6 +90,29 @@ class wager():
         while start != 0 and self.roll[start-1] != 7:
             start -= 1
         return (len(set(self.roll[start:idx])))
+    
+    def playerAdvantagePoints(self, span, idx, come_dont="DONT"):
+        # for the last span points rolled before idx, return %won - %lost
+        outcome = self.dont if come_dont=="DONT" else self.come
+        win = 0
+        lose = 0
+        end = idx
+        while idx > 0:
+            idx -= 1
+            if self.roll[idx] in POINT:
+                if outcome[idx] == 1: win  += 1
+                else:                 lose += 1
+            if win + lose >= span: break
+        win_adv = (win - lose)/(win + lose + 0.001)     # in case win + lose == 0
+        return (win_adv)
+    
+    def playerAdvMovingAvg(self, span, come_dont="DONT"):
+        mavg = []
+        for i in range(len(self.roll)):
+            mavg.append(self.playerAdvantagePoints(span, i))
+        return (mavg)
+            
+
 
 
     def maxBetCome(self):
