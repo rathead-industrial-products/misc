@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 
 
-N_FLIPS = 1000000
+N_FLIPS = 10000000
 
 
 def _plotSeries(**series):
@@ -96,11 +96,32 @@ h_dict = Counter(runs_zero)
 h = [0]*(max(h_dict.keys())+1)
 for k,v in h_dict.items():
     h[k]=v
+norm = [i*item for i, item in enumerate(h)]
+normpct = [int(100*round(n/N_FLIPS, 2)) for n in norm]
 print (h)
+print (norm)
+print (normpct)
+
+
+hist_bet = hist_coin[:-1]       # place a unit bet after every '1'. This is the same as the coin flip history shifted right one position
+hist_bet.insert(0, 0)
+win1 = 0
+win0 = 0
+hist_win1 = []
+hist_win0 = []
+for i, b in enumerate(hist_bet):
+    if b: 
+        if hist_coin[i]: win1 += 1
+        else: win1 -= 1
+    else:
+        if not hist_coin[i]: win0 += 1
+        else: win0 -= 1    
+    hist_win1.append(win1)
+    hist_win0.append(win0)  
+print (win1, win0)
+_plotSeries(win1=hist_win1, win0=hist_win0)
 
 '''
-
-
 start=0; end=None
 start=7900; end=8200
 if end and (end-start<=20):
