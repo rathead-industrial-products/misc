@@ -4,9 +4,10 @@
 
 import random, itertools
 import matplotlib.pyplot as plt
+from collections import Counter
 
 
-N_FLIPS = 10000
+N_FLIPS = 1000000
 
 
 def _plotSeries(**series):
@@ -23,6 +24,7 @@ def _printList(l):  # print a list seperating items with tabs
     print ()
 
 
+
 # 0 = loss, 1 = win
 loss = 0
 bank = 0
@@ -36,7 +38,7 @@ random.seed(1)
 # When a win offsets recent losses, continue betting
 # the previous wager until losses are recovered
 
-MAX_WAGER = 100
+MAX_WAGER = 1000
 
 def circuitBreaker(coin_hist):
     # if there have been five losses in a row anywhere in the last 6 rolls, stop betting
@@ -50,6 +52,9 @@ def circuitBreaker(coin_hist):
         return (False)
 
 for i in range(N_FLIPS):
+    hist_coin.append(random.randint(0,1))
+
+for i, coin in enumerate(hist_coin):
     if loss < 0:
         if circuitBreaker(hist_coin):
             wager = 0       # long string of 0's, take a break for awhile
@@ -61,7 +66,7 @@ for i in range(N_FLIPS):
     else:
         wager = 16              # default wager
 #    wager = min(wager, MAX_WAGER)
-    coin = random.randint(0,1)
+
     if coin == 1:       # win
         loss += wager
         if loss > 0: loss = 0
@@ -70,11 +75,31 @@ for i in range(N_FLIPS):
         loss -= wager
         bank -= wager
     coin_prev = coin
-    hist_coin.append(coin)
     hist_wager.append(int(wager))
     hist_loss.append(int(loss))
     hist_bank.append(int(bank))
 #    print (coin, wager, loss, bank)
+
+# create list of run lengths of 0/1, separated by 1/0
+runs_zero = [len(list(g)) for k, g in itertools.groupby(hist_coin) if k==0]
+runs_one  = [len(list(g)) for k, g in itertools.groupby(hist_coin) if k==1]
+
+'''
+bins = max(max(runs_zero), max(runs_one))
+plt.hist([runs_zero, runs_one], bins=bins, label=['0', '1'])
+plt.legend(loc='upper right')
+plt.show()
+'''
+
+# create histogram of run length vs. occurance
+h_dict = Counter(runs_zero)
+h = [0]*(max(h_dict.keys())+1)
+for k,v in h_dict.items():
+    h[k]=v
+print (h)
+
+'''
+
 
 start=0; end=None
 start=7900; end=8200
@@ -86,4 +111,4 @@ if end and (end-start<=20):
 
 print ("max bet", max(hist_wager))
 _plotSeries(wager=hist_wager[start:end], loss=hist_loss[start:end], bank=hist_bank[start:end])
-
+'''
