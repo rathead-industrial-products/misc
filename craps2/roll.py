@@ -74,7 +74,7 @@ def meanMedianModeStdDev(data):
     except: mode = max([p[0] for p in statistics._counts(data)])    # returns largest if no unique mode
     if len(data) > 1: sd = round(statistics.stdev(data),1)
     else:             sd = None
-    return (round(statistics.mean(data),1), statistics.median(data), mode, sd)
+    return (min(data), max(data), round(statistics.mean(data),1), statistics.median(data), mode, sd)
 
 
 #
