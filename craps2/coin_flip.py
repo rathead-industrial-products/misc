@@ -77,13 +77,14 @@ for i in range(N_FLIPS):
 #    print (coin, wager, loss, bank)
 
 start=0; end=None
-start=7900; end=8200
+#start=7900; end=8200
 if end and (end-start<=20):
     _printList (hist_coin[start:end])
     _printList (hist_wager[start:end])
     _printList (hist_loss[start:end])
     _printList (hist_bank[start:end])
+hist_coin_big = [100*x for x in hist_coin]
 
 print ("max bet", max(hist_wager))
-_plotSeries(wager=hist_wager[start:end], loss=hist_loss[start:end], bank=hist_bank[start:end])
+_plotSeries(coin=hist_coin_big[start:end], wager=hist_wager[start:end], loss=hist_loss[start:end], bank=hist_bank[start:end])
 
