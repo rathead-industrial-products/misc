@@ -10,7 +10,7 @@ CRAP        = (2, 3, 12)
 CRAP_BAR_12 = (2, 3)
 POINT       = (4, 5, 6, 8, 9, 10)
 
-N_ROLLS = 100000
+N_ROLLS = 1000000
 
 class xlist(list):
     # extend the built-in list type to add a .prev() method
@@ -46,6 +46,22 @@ def _printList(l):  # print a list seperating items with tabs
 
 
 trial = roll.trial(N_ROLLS, outcome=True, flat=True)    #[25800:26000]
+
+# remove rolls longer than MAX_ROLL_LEN
+MAX_ROLL_LEN = 24
+short_trial = []
+tmp = []
+rlen = 0
+for t in trial:
+    tmp.append(t)
+    rlen += 1
+    if t[0] == 7:
+        if rlen <= MAX_ROLL_LEN:
+            short_trial.append(tmp)
+        tmp = []
+        rlen = 0
+trial = [item for sublist in short_trial for item in sublist]  # replace trial with flattened short_trial
+
 (roll_seq, c_outcome, d_outcome) = [xlist(t) for t in zip(*trial)]
 cwager = xlist([])
 dwager = xlist([])
@@ -95,6 +111,15 @@ print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
 
 
+# record current roll length at every roll
+rlen = []
+cnt = 1
+for i, roll in enumerate(roll_seq):
+    if roll == 7: cnt = 1
+    rlen.append(cnt)
+    cnt += 1
+
+
 
 # track when wagers are reset
 max_wager = max(dwager)
@@ -106,7 +131,7 @@ for wager in dwager:
     m.append(i)
 
 #_plotSeries(come=w.fitnessArrayCome(), dont_come=w.fitnessArrayDont())
-_plotSeries(dont_come=w.fitnessArrayDont(), bet_reset=m)
+_plotSeries(dont_come=w.fitnessArrayDont(), roll_len=rlen)
 #print (roll_seq[841600:841620])
 #print (dwager[841600:841620])
 #_plotSeries(w.fitnessArrayDont()[841600:841620])

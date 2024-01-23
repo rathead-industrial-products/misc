@@ -39,12 +39,12 @@ class wager():
         return (min(w, MAX_WAGER_COME))
 
     def _dontWager(self, i):
-        MAX_WAGER_DONT = 64
+        MAX_WAGER_DONT = 387420489
         # nominal bet
-        w = 1
+        w = 1; return (w)
         # increase bet after losing roll
         if self.roll.prev(idx=i) in (7, 11) and self.dwager.prev(idx=i) < MAX_WAGER_DONT:
-            w = 2 * self.dwager.prev(idx=i)           
+            w = 3 * self.dwager.prev(idx=i)           
         return (w)
 
     def _makeWagers(self):
