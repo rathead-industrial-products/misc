@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 
 
-N_FLIPS = 100000
+N_FLIPS = 10000
 
 
 def _plotSeries(**series):
@@ -30,7 +30,6 @@ loss = 0
 bank = 0
 hist_coin  = []
 hist_wager = []
-hist_loss  = []
 hist_bank  = []
 random.seed(1)
 
@@ -38,8 +37,12 @@ random.seed(1)
 # When a win offsets recent losses, continue betting
 # the previous wager until losses are recovered
 
+# starting with a unit bet, bet 4 times or until 4 ones in a row
+# after 4 bets, increase bet by one
+# repeat until 4 ones in a row or bet reaches 7 (don't bet 7)
+# after a one (win), leave bet + win riding until 4 wins in a row
+
 MAX_WAGER = 1000
-MAX_LOSS = -130
 
 def circuitBreaker(coin_hist):
     return (False)
@@ -56,34 +59,44 @@ def circuitBreaker(coin_hist):
 for i in range(N_FLIPS):
     hist_coin.append(random.randint(0,1))
 
+wager       = 1
+zero_wager  = 1
+zeros_bet   = 0
+consec_ones = 0
 for i, coin in enumerate(hist_coin):
-    if loss < 0:
-        if circuitBreaker(hist_coin):
-            wager = 0       # long string of 0's, take a break for awhile
-        elif coin_prev == 0:      # added to loss, recalculate wager
-            wager = -loss/4
-            last_lost_wager = wager
-        else:               # maintain previous wager until loss is recovered
-            wager = last_lost_wager
-    else:
-        wager = 16              # default wager
-    if loss < MAX_LOSS:
-        loss = 0        # give up, accept losses
-        wager = 16
-
     if coin == 1:       # win
-        loss += wager
-        if loss > 0: loss = 0
         bank += wager
     else:               # loss
-        loss -= wager
         bank -= wager
-    coin_prev = coin
-    hist_wager.append(int(wager))
-    hist_loss.append(int(loss))
-    hist_bank.append(int(bank))
-#    print (coin, wager, loss, bank)
+    last_wager = wager
 
+    hist_wager.append(int(wager))
+    hist_bank.append(int(bank))
+
+    # nominal wager after any zeros is 1111,2222,...,6666
+    # after 4 consecutive ones, reset wager sequence to 1111
+    # on any one, double wager until either a zero or 4 ones in a row
+    four_ones = not i < 3 and hist_coin[i-3:i+1] == [1,1,1,1]
+    if coin == 0:
+        consec_ones = 0
+        if zeros_bet >= 4:
+            zero_wager = zero_wager + 1 if zero_wager != 6 else 1
+            zeros_bet = 0
+        wager = zero_wager
+        zeros_bet += 1
+    else:   # coin == 1
+        consec_ones += 1
+        if consec_ones < 4:
+            wager *= 2  # wager + win riding
+        else:   # won 4 times, reset wager
+            wager = 1
+            zero_wager = 1
+
+
+#    print (coin, wager, bank)
+
+
+'''
 # create list of run lengths of 0/1, separated by 1/0
 runs_zero = [len(list(g)) for k, g in itertools.groupby(hist_coin) if k==0]
 runs_one  = [len(list(g)) for k, g in itertools.groupby(hist_coin) if k==1]
@@ -119,7 +132,6 @@ for i, span in enumerate(group1_spacing):
 print (roll.meanMedianModeStdDev(abs0))
 
 
-'''
 bins = max(max(runs_zero), max(runs_one))
 plt.hist([runs_zero, runs_one], bins=bins, label=['0', '1'])
 plt.legend(loc='upper right')
@@ -138,35 +150,14 @@ print (norm)
 print (normpct)
 
 
-hist_bet = hist_coin[:-1]       # place a unit bet after every '1'. This is the same as the coin flip history shifted right one position
-hist_bet.insert(0, 0)
-win1 = 0
-win0 = 0
-hist_win1 = []
-hist_win0 = []
-for i, b in enumerate(hist_bet):
-    if b: 
-        if hist_coin[i]: win1 += 1
-        else: win1 -= 1
-    else:
-        if not hist_coin[i]: win0 += 1
-        else: win0 -= 1    
-    hist_win1.append(win1)
-    hist_win0.append(win0)  
-print (win1, win0)
-_plotSeries(win1=hist_win1, win0=hist_win0)
 '''
-
 start=0; end=None
-#start=1600; end=1800
+start=5620; end=5640
 if end and (end-start<=20):
     _printList (hist_coin[start:end])
     _printList (hist_wager[start:end])
-    _printList (hist_loss[start:end])
     _printList (hist_bank[start:end])
-hist_coin_big = [100*x for x in hist_coin]
 
 
 print ("max bet", max(hist_wager))
-_plotSeries(coin=hist_coin_big[start:end], wager=hist_wager[start:end], loss=hist_loss[start:end], bank=hist_bank[start:end])
-
+_plotSeries(coin=hist_coin[start:end], wager=hist_wager[start:end], bank=hist_bank[start:end])
