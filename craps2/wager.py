@@ -39,21 +39,13 @@ class wager():
         return (min(w, MAX_WAGER_COME))
 
     def _dontWager(self, i):
-        MAX_WAGER_DONT = 1e6
+        MAX_WAGER_DONT = 64
+        # nominal bet
         w = 1
-        if self.roll.prev(idx=i) in (7, 11):    # bet lost, accumulate losses for eventual recovery
-            self.running_loss_dont -= self.dwager.prev(idx=i)
-        if self.dont.prev(idx=i) > 0:           # previous bet won, reduce loss outstanding
-            self.running_loss_dont += self.dwager.prev(idx=i)   # shouldn't matter that point wins are recorded out-of-order?
-        if self.running_loss_dont < 0:
-            w = 3.16 * (-self.running_loss_dont / 4)     # bet 1/4 of the loss outstanding times EV multiplier
-            w = 4 * (-self.running_loss_dont / 4)     # bet 1/4 of the loss outstanding times EV multiplier
-        else:
-            self.running_loss_dont = 0          # reset loss, don't accumulate winnings
-        self.running_loss_dont_history.append(self.running_loss_dont)
-        w = max(1, w)                           # always bet at least 1, don't try to recover small fractional losses
-        if self.pointsCovered(i) > 4: w = 0
-        return (min(w, MAX_WAGER_DONT))
+        # increase bet after losing roll
+        if self.roll.prev(idx=i) in (7, 11) and self.dwager.prev(idx=i) < MAX_WAGER_DONT:
+            w = 2 * self.dwager.prev(idx=i)           
+        return (w)
 
     def _makeWagers(self):
         # cwager & dwager are empty xlists

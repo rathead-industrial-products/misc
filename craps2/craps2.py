@@ -10,7 +10,7 @@ CRAP        = (2, 3, 12)
 CRAP_BAR_12 = (2, 3)
 POINT       = (4, 5, 6, 8, 9, 10)
 
-N_ROLLS = 1000
+N_ROLLS = 100000
 
 class xlist(list):
     # extend the built-in list type to add a .prev() method
@@ -45,7 +45,7 @@ def _printList(l):  # print a list seperating items with tabs
 
 
 
-trial = roll.trial(N_ROLLS, outcome=True, flat=True) #[430:450]
+trial = roll.trial(N_ROLLS, outcome=True, flat=True)    #[25800:26000]
 (roll_seq, c_outcome, d_outcome) = [xlist(t) for t in zip(*trial)]
 cwager = xlist([])
 dwager = xlist([])
@@ -93,7 +93,20 @@ print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 '''
 
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
-_plotSeries(come=w.fitnessArrayCome(), dont_come=w.fitnessArrayDont())
+
+
+
+# track when wagers are reset
+max_wager = max(dwager)
+i= 0
+m = []
+for wager in dwager:
+    if wager == max_wager:
+        i += 1
+    m.append(i)
+
+#_plotSeries(come=w.fitnessArrayCome(), dont_come=w.fitnessArrayDont())
+_plotSeries(dont_come=w.fitnessArrayDont(), bet_reset=m)
 #print (roll_seq[841600:841620])
 #print (dwager[841600:841620])
 #_plotSeries(w.fitnessArrayDont()[841600:841620])
