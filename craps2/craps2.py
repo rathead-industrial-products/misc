@@ -45,7 +45,7 @@ def _printList(l):  # print a list seperating items with tabs
 
 
 
-trial = roll.trial(N_ROLLS, outcome=True, flat=True)    #[25800:26000]
+trial = roll.trial(N_ROLLS, outcome=True, flat=True) #[841602:841612]
 
 # remove rolls longer than MAX_ROLL_LEN
 MAX_ROLL_LEN = 24
@@ -60,7 +60,7 @@ for t in trial:
             short_trial.append(tmp)
         tmp = []
         rlen = 0
-trial = [item for sublist in short_trial for item in sublist]  # replace trial with flattened short_trial
+#trial = [item for sublist in short_trial for item in sublist]  # replace trial with flattened short_trial
 
 (roll_seq, c_outcome, d_outcome) = [xlist(t) for t in zip(*trial)]
 cwager = xlist([])
@@ -96,9 +96,9 @@ print ("Total Rolls", total_rolls)
 print ("Longest Roll", longest_roll)
 print ("Max Consecutive 7-11's", max_consecutive_7_11)
 print ("Roll Distribution: 7-11 %0.2f%%, Crap %0.2f%%, Point %0.2f%%" % (
-     100*svn11_rolled/total_rolls,
-    -100*craps_rolled/total_rolls,
-     100*points_rolled/total_rolls))
+    100*svn11_rolled/total_rolls,
+    100*craps_rolled/total_rolls,
+    100*points_rolled/total_rolls))
 
 '''
 print ("roll\t", end=''); _printList (roll_seq)
@@ -108,9 +108,11 @@ print ("bet\t", end=''); _printList ([round(x, 2) for x in w.dwager])
 print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 '''
 
+#print (w.roll[-20:])
+#print (w.dwager[-20:])
+
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
-
-
+print ("Total don't winnings =", w.dfit[-1])
 # record current roll length at every roll
 rlen = []
 cnt = 1
@@ -119,16 +121,6 @@ for i, roll in enumerate(roll_seq):
     rlen.append(cnt)
     cnt += 1
 
-
-
-# track when wagers are reset
-max_wager = max(dwager)
-i= 0
-m = []
-for wager in dwager:
-    if wager == max_wager:
-        i += 1
-    m.append(i)
 
 #_plotSeries(come=w.fitnessArrayCome(), dont_come=w.fitnessArrayDont())
 _plotSeries(dont_come=w.fitnessArrayDont(), roll_len=rlen)

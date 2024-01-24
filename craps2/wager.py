@@ -39,12 +39,22 @@ class wager():
         return (min(w, MAX_WAGER_COME))
 
     def _dontWager(self, i):
-        MAX_WAGER_DONT = 387420489
         # nominal bet
-        w = 1; return (w)
-        # increase bet after losing roll
-        if self.roll.prev(idx=i) in (7, 11) and self.dwager.prev(idx=i) < MAX_WAGER_DONT:
-            w = 3 * self.dwager.prev(idx=i)           
+        w = 0
+        # bet everything except a 7-11 to explore return percentage (analytically should be 24.4% 66.7% x 0.2 + 11.11%) (didn't record but close after 1M rolls)
+        # bet the first non-7-11 roll after a 7-11 to explore return percentage (analytically should be 24.4% 66.7% x 0.2 + 11.11%) (26.77% after 1M rolls)
+        # bet 1 on a 7-11 roll followed by a non 7-11 roll. bet x on the following non 7-11. (-15.5% x=2, -4.9% x=3, +1.4% x=4, +5.6% x=5,+12.7% x=8 after 1M rolls )
+        # bet 1 on a 7-11 followed by either another 7-11 or a non 7-11. escalate bet until the non 7-11 is bet. (-2.7% bets=(1,2,4), +7.8% bets=(1,3,9), +13.0% bets=(1,4,16))
+        if i+2 >= len(self.roll): return (0)
+        bet_seq = (1,3,9)
+        start = ((self.roll.prev(idx=i) not in (7, 11) and self.roll[i] in (7, 11) and self.roll[i+1] not in (7, 11)) or
+                 (self.roll[i] in (7, 11) and self.roll[i+1] in (7, 11) and self.roll[i+2] not in (7, 11)))
+        if self.dwager.prev(idx=i) == bet_seq[0]:
+            w = bet_seq[1]
+        if self.dwager.prev(idx=i) == bet_seq[1]:
+            w = bet_seq[2]
+        if start:
+            w = bet_seq[0]
         return (w)
 
     def _makeWagers(self):
