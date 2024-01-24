@@ -13,11 +13,11 @@ POINT       = (4, 5, 6, 8, 9, 10)
 N_ROLLS = 1000000
 
 class xlist(list):
-    # extend the built-in list type to add a .prev() method
-    # return a list of the n previous rolls before idx
+    # extend the built-in list type to add a .prev() and .next() method
+    # return a list of the n previous (next) rolls before (after) idx
     # return outofrange for rolls out of range
     # return a scaler if n == 1
-    # default with no parameters returns the last item in the list
+    # default with no parameters returns the last (first) item in the list
     def prev(self, n=1, idx=None, outofrange=0):
         if idx is None: idx = len(self)
         assert idx >= 0 and idx <= len(self)
@@ -28,6 +28,23 @@ class xlist(list):
             prev = self[idx-n: idx]
         if n == 1: prev = prev[0]
         return (prev)
+    
+    def next(self, n=1, idx=None, outofrange=0):
+        if idx is None: idx = -1  # allow idx=-1 to return first item in list
+        idx += 1  # allow self.next() to return first item in list
+        next = [0] + self 
+        print (self)
+        print (next)
+        assert idx >= 0 and idx <= (len(next) - 1) 
+        if idx + n >= len(next):
+            postlist = [outofrange] * (idx+n-(len(next)-1))
+            print (postlist)
+            next = next[:] + postlist
+            next = next[idx+1:]
+        else:
+            next = next[idx+1:idx+n+1]
+        if n == 1: next = next[0]
+        return (next)
 
 def _plotSeries(**series):
     # _plotSeries(('label1':[d1, d2], 'label2:[d3.d4], ... ))
@@ -43,7 +60,7 @@ def _printList(l):  # print a list seperating items with tabs
     print ()
 
 
-
+"""
 
 trial = roll.trial(N_ROLLS, outcome=True, flat=True) #[841602:841612]
 
@@ -129,6 +146,7 @@ _plotSeries(dont_come=w.fitnessArrayDont(), roll_len=rlen)
 #_plotSeries(w.fitnessArrayDont()[841600:841620])
 #
 
+"""
 
 #
 # Main  --  Unit Test
@@ -151,8 +169,25 @@ class TestCraps(unittest.TestCase):
         self.assertEqual(xl.prev(idx=0), 0)
         self.assertEqual(xl.prev(2, 1), [0, 1])
 
-'''
+    def test_xListNext(self):
+        xl = xlist([])
+        self.assertEqual(xl.next(), 0)
+        self.assertEqual(xl.next(2), [0, 0])
+        xl.append(1)
+        self.assertEqual(xl, [1])
+        xl.append(2)
+        self.assertEqual(xl, [1, 2])
+        xl += [3, 4]
+        self.assertEqual(xl, [1, 2, 3, 4])
+        self.assertEqual(xl.next(), 1)
+        self.assertEqual(xl.next(2), [1, 2])
+        self.assertEqual(xl.next(idx=-1), 1)
+        self.assertEqual(xl.next(2, -1), [1, 2])
+        self.assertEqual(xl.next(idx=len(xl)-1), 0)
+        self.assertEqual(xl.next(2, len(xl)-2), [4, 0])
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
-'''
+
 
