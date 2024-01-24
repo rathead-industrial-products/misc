@@ -124,7 +124,8 @@ print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 #print (w.dwager[-20:])
 
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
-print ("Total don't winnings =", w.dfit[-1])
+print ("Total dont winnings =", w.dfit[-1])
+print ("Total dont wagered =", w.totalBetDont())
 # record current roll length at every roll
 rlen = []
 cnt = 1
