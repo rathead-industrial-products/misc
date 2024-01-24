@@ -33,12 +33,9 @@ class xlist(list):
         if idx is None: idx = -1  # allow idx=-1 to return first item in list
         idx += 1  # allow self.next() to return first item in list
         next = [0] + self 
-        print (self)
-        print (next)
         assert idx >= 0 and idx <= (len(next) - 1) 
         if idx + n >= len(next):
             postlist = [outofrange] * (idx+n-(len(next)-1))
-            print (postlist)
             next = next[:] + postlist
             next = next[idx+1:]
         else:
@@ -59,8 +56,6 @@ def _printList(l):  # print a list seperating items with tabs
         print ("%s\t" % (str(item)), end='')
     print ()
 
-
-"""
 
 trial = roll.trial(N_ROLLS, outcome=True, flat=True) #[841602:841612]
 
@@ -139,14 +134,9 @@ for i, roll in enumerate(roll_seq):
     cnt += 1
 
 
-#_plotSeries(come=w.fitnessArrayCome(), dont_come=w.fitnessArrayDont())
 _plotSeries(dont_come=w.fitnessArrayDont(), roll_len=rlen)
-#print (roll_seq[841600:841620])
-#print (dwager[841600:841620])
-#_plotSeries(w.fitnessArrayDont()[841600:841620])
-#
 
-"""
+
 
 #
 # Main  --  Unit Test
@@ -186,8 +176,8 @@ class TestCraps(unittest.TestCase):
         self.assertEqual(xl.next(idx=len(xl)-1), 0)
         self.assertEqual(xl.next(2, len(xl)-2), [4, 0])
 
-
+'''
 if __name__ == '__main__':
     unittest.main(verbosity=2)
-
+'''
 
