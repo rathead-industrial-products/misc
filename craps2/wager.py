@@ -26,6 +26,7 @@ class wager():
         # self.maxDontWager
         self.cumComeWager = []  # set in _makeWagers
         self.cumDontWager = []
+        self.f_in_seq = False
         self._makeWagers()
         self.cfit = []      # running win/loss tally at each roll
         self.dfit = []
@@ -53,30 +54,56 @@ class wager():
                     break
             return (n)
 
-        # bet everything except a 7-11 to explore return percentage (analytically should be 24.4% 66.7% x 0.2 + 11.11%) (didn't record but close after 1M rolls)
+        # bet everything except a 7-11 to explore return percentage (analytically should be 24.4% 66.7% x 0.2 + 11.11%) (26.46% after 1M rolls)
         # bet the first non-7-11 roll after a 7-11 to explore return percentage (analytically should be 24.4% 66.7% x 0.2 + 11.11%) (26.77% after 1M rolls)
         # bet 1 on a 7-11 roll followed by a non 7-11 roll. bet x on the following non 7-11. (-15.5% x=2, -4.9% x=3, +1.4% x=4, +5.6% x=5,+12.7% x=8 after 1M rolls )
         # bet 1 on a 7-11 followed by either another 7-11 or a non 7-11. escalate bet until the non 7-11 is bet. (-2.7% bets=(1,2,4), +7.8% bets=(1,3,9), +13.0% bets=(1,4,16))
         # bet (bet_seq) on a string of consecutive 7-11s followed by a non 7-11
         # results after 1M rolls:
         # bet_seq = (1,2) -15.5%, (1,3) -4.9%, (1,4) 1.4% (1,5) +5.6%, (1,8) 12.7%
-        # bet_seq = (1,2,4) -2.7%, (1,3,9) +7.8%, (1,4,16) +13.0%
+        # ??? from prev algorithm bet_seq = (1,2,4) -2.7%, (1,3,9) +7.8%, (1,4,16) +13.0%
+        # bet_seq (ALL)  = (1,2,4) -20.3%, (1,3,9)  -8.4%, (1,4,16) -1.1%, (1,4,20) +1.6%
+        # bet_seq (ONLY) = (1,2,4) -27.3%, (1,3,9) -11.9%, (1,4,16) -3.1%, (1,4,20) +1.8%
+        # bet_seq (ALL)  = (1,4,20,100) +1.7%
+        # bet_seq (ONLY) = (1,4,20,100) +1.9%
+        # bet_seq (ALL)  = (1,4,20,100,500) +2.2%
+        # bet_seq (ALL)  = (1,4,20,100,500,2500) +2.0%
+        # bet_seq (ALL)  = (1,4,20,100,1)  -8.3%         # give up after 4 losses in a row
+        # bet_seq (ONLY) = (1,4,20,100,1) -99.0%
+        # bet_seq (ALL)  = (1,4,20,100,1,4,20,100)  -8.2%
+        # bet_seq (ONLY) = (1,4,20,100,1,4,20,100) -47.4%
+        # bet_seq (ALL)  = (1,4,20,1,4,20,1,4,20) -11.6%
+        # bet_seq (ALL)  = (1,4,20,100,1,4,20,100,1,4,20,100) -8.3%
+        # bet_seq (ALL)  = (1,4,20,100,500,1,4,20,100,500,1,4,20,100,500) -5.8%
+        # bet_seq (ALL)  = (1,4,20,100,500,2500,1,4,20,100,500,2500,1,4,20,100,500,2500) -4.3%
+        # bet_seq (ALL)  = (1,5,25,1,5,25,1,5,25,1,5,25) -9.75%
+        #
+        # Now change the nominal bet on everything except the 7-11 series to 1
+        # bet_seq (ALL)  = (0,0,0,0) -1.4%
+        # bet_seq (ALL)  = (1,4,20,100,1,4,20,100,1,4,20,100) -1.5%
+        # bet_seq (ALL)  = (1,4,20,100,500,2500,1,4,20,100,500,2500,1,4,20,100,500,2500) -0.6%
+        # bet_seq (ALL)  = (1,4,20,1,4,20,1,4,20,1,4,20) -1.32%
 
         # nominal bet
-        w = 0
+        nominal = 0
+        w = nominal
 
-        bet_seq = (1,4)
+        SEQ_LEN_ONLY = False     # only do strings of 7-11's equal to seq_len - 1. Otherwise do all shorter 7-11 sequences as well
+        bet_seq = (1,5,25,1,5,25,1,5,25,1,5,25)
         seq_len = len(bet_seq)
         pw = self.dwager.prev(idx=i)    # previous wager on last roll
-        if pw:      # currently in a betting sequence
+        if self.f_in_seq:      # currently in a betting sequence
             if self.roll.prev(idx=i) in (7,11):        # last roll was a 7-11, continue with betting sequence
                 pw_idx = bet_seq.index(pw)
                 w = bet_seq[pw_idx+1]
             else:
-                w = 0           # prev roll was a non 7-11, betting sequence over, restart wager
-        if not w and _consec711(i) and _consec711(i) < seq_len:       # not currently in a betting sequence but starting a string of 7-11s
-            w = bet_seq[0]
-
+                w = nominal        # prev roll was a non 7-11, betting sequence over, restart wager
+                self.f_in_seq = False
+        if not self.f_in_seq and _consec711(i):  # not currently in a betting sequence but starting a string of 7-11s
+            if ((SEQ_LEN_ONLY and _consec711(i) == seq_len - 1) or   # bet only sequences of 7-11 that are exactly seq_Len-1 long
+                (not SEQ_LEN_ONLY and _consec711(i) < seq_len)):     # bet all sequences of 7-11 that are seq_len -1 or shorter
+                w = bet_seq[0]
+                self.f_in_seq = True
         return (w)
 
     def _makeWagers(self):
