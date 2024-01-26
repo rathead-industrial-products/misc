@@ -15,6 +15,9 @@ class wager():
         self.dont = dont_outcome
         self.cwager = come_wager
         self.dwager = dont_wager
+        # unrealized win/loss
+        self.unrealized_come_loss = 0
+        self.unrealized_dont_win = 0
         # more data for wager algorithm
         self.running_loss_come = 0
         self.running_loss_dont = 0
@@ -95,13 +98,30 @@ class wager():
             
     def _fitness(self):
         # create a running account of win/loss at every roll
+        # come roll point winnings are recognized when the point is rolled again
+        # come roll point losses are recognized when a 7 is rolled
+        # and vice-versa for dont winnings/losses
         win_loss = 0
         for i, item in enumerate(self.come):
-            win_loss += item * self.cwager[i]
+            if self.roll[i] in POINT and self.cwager[i] == -1:
+                # come point losses not realized until a 7 is rolled
+                self.unrealized_come_loss += item * self.cwager[i]
+            else:
+                win_loss += item * self.cwager[i]
+            if self.roll[i] == 7:   # realize loss from points still riding
+                win_loss += self.unrealized_come_loss
+                self.unrealized_come_loss = 0
             self.cfit.append(win_loss)
         win_loss = 0
         for i, item in enumerate(self.dont):
-            win_loss += item * self.dwager[i]
+            if self.roll[i] in POINT and self.dwager[i] == 1:
+                # dont point wins not realized until a 7 is rolled
+                self.unrealized_dont_win += item * self.cwager[i]
+            else:
+                win_loss += item * self.dwager[i]
+            if self.roll[i] == 7:   # realize win from points still riding
+                win_loss += self.unrealized_dont_win
+                self.unrealized_dont_win = 0
             self.dfit.append(win_loss)
 
     def pointsCovered(self, idx):
