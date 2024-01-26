@@ -130,7 +130,7 @@ class wager():
         # and vice-versa for dont winnings/losses
         win_loss = 0
         for i, item in enumerate(self.come):
-            if self.roll[i] in POINT and self.cwager[i] == -1:
+            if self.roll[i] in POINT and item == -1:
                 # come point losses not realized until a 7 is rolled
                 self.unrealized_come_loss += item * self.cwager[i]
             else:
@@ -141,9 +141,9 @@ class wager():
             self.cfit.append(win_loss)
         win_loss = 0
         for i, item in enumerate(self.dont):
-            if self.roll[i] in POINT and self.dwager[i] == 1:
+            if self.roll[i] in POINT and item == 1:
                 # dont point wins not realized until a 7 is rolled
-                self.unrealized_dont_win += item * self.cwager[i]
+                self.unrealized_dont_win += item * self.dwager[i]
             else:
                 win_loss += item * self.dwager[i]
             if self.roll[i] == 7:   # realize win from points still riding

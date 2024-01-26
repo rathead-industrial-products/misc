@@ -10,7 +10,7 @@ CRAP        = (2, 3, 12)
 CRAP_BAR_12 = (2, 3)
 POINT       = (4, 5, 6, 8, 9, 10)
 
-N_ROLLS = 1000000
+N_ROLLS = 10
 
 class xlist(list):
     # extend the built-in list type to add a .prev() and .next() method
@@ -120,8 +120,10 @@ print ("bet\t", end=''); _printList ([round(x, 2) for x in w.dwager])
 print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 '''
 
-#print (w.roll[-20:])
-#print (w.dwager[-20:])
+_printList (w.roll[-20:])
+_printList (w.dwager[-20:])
+_printList (w.dont)
+_printList (w.dfit)
 
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
 print ("Total dont winnings =", w.dfit[-1])
