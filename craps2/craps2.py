@@ -10,7 +10,7 @@ CRAP        = (2, 3, 12)
 CRAP_BAR_12 = (2, 3)
 POINT       = (4, 5, 6, 8, 9, 10)
 
-N_ROLLS = 10
+N_ROLLS = 1000000
 
 class xlist(list):
     # extend the built-in list type to add a .prev() and .next() method
@@ -56,9 +56,9 @@ def _printList(l):  # print a list seperating items with tabs
         print ("%s\t" % (str(item)), end='')
     print ()
 
-
 trial = roll.trial(N_ROLLS, outcome=True, flat=True) #[841602:841612]
 
+'''
 # remove rolls longer than MAX_ROLL_LEN
 MAX_ROLL_LEN = 24
 short_trial = []
@@ -73,6 +73,7 @@ for t in trial:
         tmp = []
         rlen = 0
 #trial = [item for sublist in short_trial for item in sublist]  # replace trial with flattened short_trial
+'''
 
 (roll_seq, c_outcome, d_outcome) = [xlist(t) for t in zip(*trial)]
 cwager = xlist([])
@@ -120,10 +121,10 @@ print ("bet\t", end=''); _printList ([round(x, 2) for x in w.dwager])
 print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 '''
 
-_printList (w.roll[-20:])
-_printList (w.dwager[-20:])
-_printList (w.dont)
-_printList (w.dfit)
+#_printList (w.roll[:])
+#_printList (w.cwager[:])
+#_printList (w.come[:])
+#_printList (w.cfit[:])
 
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
 print ("Total dont winnings =", w.dfit[-1])
