@@ -101,6 +101,7 @@ class wager():
                 (not SEQ_LEN_ONLY and _consec711(i) < seq_len)):     # bet all sequences of 7-11 that are seq_len -1 or shorter
                 w = bet_seq[0]
                 self.f_in_seq = True
+        w = 1
         return (w)
 
     def _makeWagers(self):
@@ -122,13 +123,36 @@ class wager():
             
     def _fitness(self):
         # create a running account of win/loss at every roll
+        # come roll point winnings are recognized when the point is rolled again
+        # come roll point losses are recognized when a 7 is rolled
+        # and vice-versa for dont winnings/losses
+        deferred_come = [0] * 11
+        deferred_dont = [0] * 11
         win_loss = 0
-        for i, item in enumerate(self.come):
-            win_loss += item * self.cwager[i]
+        for i, decision in enumerate(self.come):
+            r = self.roll[i]
+            if r in POINT:  # realize win if point made previously, otherwise defer decision on win/loss
+                if deferred_come[r]:
+                    win_loss += deferred_come[r]
+                deferred_come[r] = self.cwager[i]
+            else:   # any roll other than a point is won/lost immediately
+                win_loss += decision * self.cwager[i]
+            if self.roll[i] == 7:   # realize loss from points still riding
+                win_loss -= sum(deferred_come)
+                deferred_come = [0] * 11
             self.cfit.append(win_loss)
         win_loss = 0
-        for i, item in enumerate(self.dont):
-            win_loss += item * self.dwager[i]
+        for i, decision in enumerate(self.dont):
+            r = self.roll[i]
+            if r in POINT:  # realize loss if point made previously, otherwise defer decision on win/loss
+                if deferred_dont[r]:
+                    win_loss -= deferred_dont[r]
+                deferred_dont[r] = self.dwager[i]
+            else:   # any roll other than a point is won/lost immediately
+                win_loss += decision * self.dwager[i]
+            if self.roll[i] == 7:   # realize loss from points still riding
+                win_loss += sum(deferred_dont)
+                deferred_dont = [0] * 11
             self.dfit.append(win_loss)
 
     def pointsCovered(self, idx):

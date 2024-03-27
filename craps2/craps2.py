@@ -56,9 +56,9 @@ def _printList(l):  # print a list seperating items with tabs
         print ("%s\t" % (str(item)), end='')
     print ()
 
-
 trial = roll.trial(N_ROLLS, outcome=True, flat=True) #[841602:841612]
 
+'''
 # remove rolls longer than MAX_ROLL_LEN
 MAX_ROLL_LEN = 24
 short_trial = []
@@ -73,6 +73,7 @@ for t in trial:
         tmp = []
         rlen = 0
 #trial = [item for sublist in short_trial for item in sublist]  # replace trial with flattened short_trial
+'''
 
 (roll_seq, c_outcome, d_outcome) = [xlist(t) for t in zip(*trial)]
 cwager = xlist([])
@@ -120,8 +121,10 @@ print ("bet\t", end=''); _printList ([round(x, 2) for x in w.dwager])
 print ("bank\t", end=''); _printList ([round(x, 2) for x in w.dfit])
 '''
 
-#print (w.roll[-20:])
-#print (w.dwager[-20:])
+#_printList (w.roll[:])
+#_printList (w.cwager[:])
+#_printList (w.come[:])
+#_printList (w.cfit[:])
 
 print ("Player come advantage %0.2f%%\nPlayer don't advantage %0.2f%%\nMax come bet %.0f\nMax don't bet %.0f" % (100*w.fitnessCome()/w.totalBetCome(), 100*w.fitnessDont()/w.totalBetDont(), w.maxBetCome(), w.maxBetDont()))
 print ("Total dont winnings =", w.dfit[-1])
