@@ -4,7 +4,7 @@ Create a json database from example csv files in /db
 
 """
 #
-# Database contents
+# Database Record
 #
 # Raw data from Yahoo Finance
 # 'Contract Name'       : str       'RMBS240419C00055000'
@@ -21,27 +21,16 @@ Create a json database from example csv files in /db
 #
 # Added when quote fetched
 # 'type'                : str       'PUT' | 'CALL'
-# 'time'                : str
-# 'underlying'          : float
+# 'time'                : str       '2024-03-28 15:55:53'
+# 'underlying'          : float     61.810001373291016
 #
 
 
-# Database contents
-# quote : dict = {
-# 'type;       : string     ('PUT' | 'CALL')
-# 'time'       : datetime.datetime
-# 'strike'     : float
-# 'expiration' : datetime.datetime
-# 'underlying' : float
-# 'bid'        : float
-# 'ask'        : float
-# }
-
-import csv
 import datetime
 import json
 from yahoo_fin import stock_info, options
 
+TICKER = 'RMBS'
 
 #
 # File Management
@@ -50,27 +39,36 @@ from yahoo_fin import stock_info, options
 # Files are organized by expiration date, one per month
 #
 
-def nextExpirationDate(date: datetime.date):
+def datetimeToStr(dt):
+    s = dt.strftime("%y%m%d")
+    return (s)
+
+def strToDatetime(s):
+    dt = datetime.datetime.strptime(s, '%y%m%d')
+    return (dt)
+
+# Return the next option expiration Friday (in the form 'YYMMDD') after date (in the form 'YYMMDD')
+# date is in the form 'YYMMDD'
+def nextExpirationDate(date: str):
+    dt = strToDatetime(date)
     # The 15th is the earliest third day in the month
     third = datetime.date(date.year, date.month, 15)
     third_friday = third.replace(day=(15 + ((4 - third.weekday()) % 7))) # Friday is weekday 4
-    if date > third_friday:
+    if dt > third_friday:
         # find next month's expiration date
         next_month = (date.replace(day=1) + datetime.timedelta(days=31)).replace(day=1)    # first of next month
         third_friday = nextExpirationDate(next_month)
-    return (third_friday)
+    return (third_friday.strftime('%y%m%d'))
 
-def datetimeToStr(dt):
-    dt = dt.replace(microsecond=0)
-    return (str(dt))
+# extract the expiration date in the form 'YYMMDD' from the contract name
+def contractExpiration(contract_name):
+    exp = contract_name[:10][4:]
+    return (exp)
 
-def datetimeFromStr(s):
-    dt = datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
-    return (dt)
-
-# store a single quote in the proper file by expiration date
+# store a single quote in a file arranged by expiration date
+# files are named 'YYMMDD.json' where 'YYMMDD' is an option expiration Friday
 def store(quote):
-    fname = nextExpirationDate(quote['time'].date()).strftime("%Y%m%d")
+    fname = nextExpirationDate(quote['time']) + ".json"
     with open(fname, 'a') as f:
         dts = datetimeToStr(quote['time'])
         datetimeFromStr(dts)
@@ -82,7 +80,7 @@ def store(quote):
 # return the entire file of the next expiration date as a list of quotes
 def recall(date):
     date = date.date()  # convert from datetime to date
-    fname = nextExpirationDate(date).strftime("%Y%m%d")
+    fname = nextExpirationDate(date).strftime("%y%m%d")
     quotes = []
     with open(fname, 'r') as f:
         for line in f:
@@ -92,49 +90,29 @@ def recall(date):
         q['expiration'] = datetimeFromStr(q['expiration'])
     return (quotes)
 
-c = options.get_calls("rmbs")
-print (c.loc[4].to_dict())
-print (stock_info.get_live_price('rmbs'))
-now = datetime.datetime.now()
-now = now.replace(hour=now.hour+3)
-print (datetimeToStr(now))
 
-'''
-chain = options.get_options_chain("rmbs")
-now = datetime.datetime.now()
-now = now.replace(hour=now.hour+3)  # convert to Eastern time
-exp = chain['calls']['Contract Name'][0][:10][4:]   # extract expiriration date from contract name
-q = {}
-q['type']       = 'CALL'
-q['time']       = now
-q['strike']     = chain['calls']['Strike'][0]
-q['expiration'] = datetime.datetime.strptime(exp, '%y%m%d')
-q['underlying'] = round(stock_info.get_live_price('rmbs'), 2)
-q['bid']        = chain['calls']['Bid'][0]
-q['ask']        = chain['calls']['Ask'][0]    
-
-store(q)
-qa = recall(now)
-print ("Recalled quote Array", qa)
+def addDictFields(type, time, underlying):
+    d = {}
+    d['type'] = type
+    d['time'] = time
+    d['underlying'] = underlying
+    return (d)
 
 
-#stock_info.get_market_status() != "OPEN"
-'''
+exp_dates = options.get_expiration_dates(TICKER)
+for ex in exp_dates:
+    calls = options.get_calls(TICKER, ex)
+    puts  = options.get_puts(TICKER, ex)
+    underlying = stock_info.get_live_price(TICKER)
+    fetch_et = datetimeToStr(datetime.datetime.now() - datetime.timedelta(hours=3))
+    for _, row in calls.iterrows():
+        record = dict(row.to_dict(), **addDictFields('CALL', fetch_et, underlying))
+        print (record)
+        store(record)
+    for p in puts:
+        pass
+        #record = dict(p.to_dict, **addDictFields('PUT', fetch_time, underlying))
+        #store(record)
 
-if False:
-    quote = []
-    with open(r'C:\Users\mitchell\Desktop\github\misc\options\db\Sample_L2_2019_August\L2_options_20190801.csv') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            if row['UnderlyingSymbol'] == 'RMBS':
-                q = {}
-                q['type']       = row['Type'].upper()
-                q['time']       = datetime.datetime.strptime(row['DataDate'], "%m/%d/%Y")
-                q['strike']     = row['Strike']
-                q['expiration'] = datetime.datetime.strptime(row['Expiration'], "%m/%d/%Y").date()
-                q['underlying'] = row['UnderlyingPrice']
-                q['bid']        = row['Bid']
-                q['ask']        = row['Ask']        
-                quote.append(q)
-        for row in quote[:1]:
-            print (row)
+
+
