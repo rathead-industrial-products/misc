@@ -4,6 +4,22 @@ Create a json database from example csv files in /db
 
 """
 
+#
+# Raw data from Yahoo Finance
+# Contract Name
+# 'Last Trade Date'     : str
+# 'Strike'              : str
+# 'Last Price''         : float
+# 'Bid''                : float
+# 'Ask''                : float
+# 'Change'              : float
+# '% Change'            : str
+# 'Volume'              : str
+# 'Open Interest'       : int
+# 'Implied Volatility'  : str
+#
+
+
 # Database contents
 # quote : dict = {
 # 'type;       : string     ('PUT' | 'CALL')
@@ -70,6 +86,13 @@ def recall(date):
         q['expiration'] = datetimeFromStr(q['expiration'])
     return (quotes)
 
+c = options.get_calls("rmbs")
+for col in c.columns.values:
+    print (col)
+print (c.loc[0].to_dict())
+
+
+'''
 chain = options.get_options_chain("rmbs")
 now = datetime.datetime.now()
 now = now.replace(hour=now.hour+3)  # convert to Eastern time
@@ -88,8 +111,8 @@ qa = recall(now)
 print ("Recalled quote Array", qa)
 
 
-
-
+#stock_info.get_market_status() != "OPEN"
+'''
 
 if False:
     quote = []
@@ -108,4 +131,3 @@ if False:
                 quote.append(q)
         for row in quote[:1]:
             print (row)
-
