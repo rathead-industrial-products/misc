@@ -3,20 +3,26 @@
 Create a json database from example csv files in /db
 
 """
-
+#
+# Database contents
 #
 # Raw data from Yahoo Finance
-# Contract Name
-# 'Last Trade Date'     : str
-# 'Strike'              : str
-# 'Last Price''         : float
-# 'Bid''                : float
-# 'Ask''                : float
-# 'Change'              : float
-# '% Change'            : str
-# 'Volume'              : str
-# 'Open Interest'       : int
-# 'Implied Volatility'  : str
+# 'Contract Name'       : str       'RMBS240419C00055000'
+# 'Last Trade Date'     : str       '2024-03-19 9:55AM EDT'
+# 'Strike'              : float     52.5
+# 'Last Price''         : float     20.82
+# 'Bid''                : float     19.7
+# 'Ask''                : float     24.5
+# 'Change'              : float     0.0
+# '% Change'            : str       '-'
+# 'Volume'              : str       '-'
+# 'Open Interest'       : int       8
+# 'Implied Volatility'  : str       '106.64%'
+#
+# Added when quote fetched
+# 'type'                : str       'PUT' | 'CALL'
+# 'time'                : str
+# 'underlying'          : float
 #
 
 
@@ -87,10 +93,11 @@ def recall(date):
     return (quotes)
 
 c = options.get_calls("rmbs")
-for col in c.columns.values:
-    print (col)
-print (c.loc[0].to_dict())
-
+print (c.loc[4].to_dict())
+print (stock_info.get_live_price('rmbs'))
+now = datetime.datetime.now()
+now = now.replace(hour=now.hour+3)
+print (datetimeToStr(now))
 
 '''
 chain = options.get_options_chain("rmbs")
