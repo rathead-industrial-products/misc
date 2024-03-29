@@ -28,9 +28,14 @@ Create a json database from example csv files in /db
 
 import datetime
 import json
+import os.path
+# suppress FutureWarnings from pandas
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 from yahoo_fin import stock_info, options
 
 TICKER = 'RMBS'
+DATA_DIR = "/home/mitchell/stock_options/data"
 
 #
 # File Management
@@ -63,12 +68,14 @@ def contractExpiration(contract_name):
 # files are named 'YYMMDD.json' where 'YYMMDD' is an option expiration Friday
 def store(quote: dict):
     fname = contractExpiration(quote['Contract Name']) + ".json"
+    fname = os.path.join(DATA_DIR, fname)
     with open(fname, 'a') as f:
         json.dump(quote, f)
         f.write('\n')
 
 # return the file as a list of quotes
 def recall(fname):
+    fname = os.path.join(DATA_DIR, fname)
     quotes = []
     with open(fname, 'r') as f:
         for line in f:
