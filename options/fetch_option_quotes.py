@@ -2,6 +2,8 @@
 """
 Create a json database from example csv files in /db
 
+Use as a function library for analysis programs
+
 """
 #
 # Database Record
@@ -51,20 +53,22 @@ def nowET():
     et = datetime.datetime.now() + datetime.timedelta(hours=3)
     return (et)
 
-# str in the form 'YYMMDD'
-def datetimeToStr(dt):
-    s = dt.strftime("%y%m%d")
+# convert a datetime to a string of the form '2024-03-28 15:55:53'
+def stringifyDT(dt):
+    s = dt.strftime('%Y-%m-%d %H:%M:%S')
     return (s)
-
-# str in the form 'YYMMDD'
-def strToDatetime(s):
-    dt = datetime.datetime.strptime(s, '%y%m%d')
+    
+# convert a string of the form '2024-03-28 15:55:53' to a datetime
+def destringifyDT(s):
+    dt = datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
     return (dt)
 
-# convert time in the form '2024-03-28 15:55:53' to 'YYMMDD'
-def timeToYYMMDD(time):
-    s = time[2:4] + time[5:7] + time[8:10]
-    return (s)
+# convert a contract name to an expiration date in the form a datetime
+def expiration_dt(contract_name):
+    yymmdd = contractExpiration(contract_name)
+    s = "20%s-%s-%s 00:00:00" % (yymmdd[:2], yymmdd[2:4], yymmdd[4:])
+    dt = destringifyDT(s)
+    return (dt)
 
 # extract the expiration date in the form 'YYMMDD' from the contract name
 def contractExpiration(contract_name):
@@ -86,38 +90,36 @@ def marketOpen():
     return (open_f)
 
 # store a single quote in a file arranged by expiration date
-# files are named 'YYMMDD.json' where 'YYMMDD' is an option expiration Friday
+# files are named 'YYMMDD.json' where 'YYMMDD' is an option
+# expiration date extracted from the contract name
 def store(quote: dict):
-    fname = contractExpiration(quote['Contract Name']) + ".json"
+    exp = contract_name[:10][4:]
+    fname = exp + ".json"
     fname = os.path.join(DATA_DIR, fname)
     with open(fname, 'a') as f:
         json.dump(quote, f)
         f.write('\n')
 
-# return the file as a list of quotes
-def recall(fname):
-    fname = os.path.join(DATA_DIR, fname)
-    quotes = []
-    with open(fname, 'r') as f:
-        for line in f:
-            quotes.append(json.loads(line))
-    return (quotes)
 
 
 #
 # Main
 #
+# Fetch Options Quotes
+#
 
-if not marketOpen():
-    print ("fetch_option_quotes.py - Market Closed")
+if __name__ == "__main__":
+
+    if not marketOpen():
+        print ("fetch_option_quotes.py - Market Closed")
     # exit()        ** Until marketOpen is verified **
-else:
-    print ("fetch_option_quotes.py - Market Open")
+    else:
+        print ("fetch_option_quotes.py - Market Open")
 
 
-exp_dates = options.get_expiration_dates(TICKER)
-for ex in exp_dates:
-    all = options.get_options_chain(TICKER, ex)
+    exp_dates = options.get_expiration_dates(TICKER)
+    for ex in exp_dates:
+        all = options.get_options_chain(TICKER, ex)
     calls = all['calls']
     puts = all['puts']
     underlying = stock_info.get_live_price(TICKER)
