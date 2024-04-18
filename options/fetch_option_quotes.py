@@ -1,10 +1,9 @@
+#
+# Fetch an options quote from Yahoo Finance
+# Using Selenium, scrape data of interest
+# Create an historical record by saving to a set of files
+#
 
-"""
-Create a json database from example csv files in /db
-
-Use as a function library for analysis programs
-
-"""
 #
 # Database Record
 #
@@ -30,16 +29,14 @@ Use as a function library for analysis programs
 
 import datetime
 import json
+import threading
 import os.path
-# suppress FutureWarnings from pandas
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-from   yahoo_fin import stock_info, options
-import yfinance as yf
 
+PRINT_DEBUG = False
 TICKER = 'RMBS'
 ACTIVE = ('TSLA', 'AAPL', 'F')
 DATA_DIR = "/home/mitchell/stock_options/data"
+COLUMN_HEADINGS = ['Contract Name', 'Last Trade Date (EDT)', 'Strike', 'Last Price', 'Bid', 'Ask', 'Change', '% Change', 'Volume', 'Open Interest', 'Implied Volatility']
 
 #
 # File Management
@@ -76,30 +73,89 @@ def contractExpiration(contract_name):
     return (exp)
 
 # return true if the market is open
-def marketOpen():
-    # see if any of very actively traded stocks have traded in the last minute
-    # if one or more have traded, infer that the market is open
-    # stock_info.get_market_status()    # should return (“PRE”), (“OPEN”), (“POST”), or (“CLOSED”) but is broken
-    # use yfinance to get a current quote as a pandas dataframe with pandas timestamps
+def marketOpen(quote_page):
     open_f = False
-    for ticker in ACTIVE:
-        last_trade_dt = list(yf.Ticker(ticker).history(period="1d").to_dict()['Volume'].keys())[0].to_pydatetime()
-        last_trade_dt_naive = last_trade_dt.replace(tzinfo=None)    # to compare with naive nowET
-        if nowET() < last_trade_dt_naive + datetime.timedelta(minutes=1):
-            open_f = True
+    market_status = quote_page.find_element(By.CSS_SELECTOR, 'div[slot="marketTimeNotice"]').text
+    if PRINT_DEBUG: print (market_status)
+    if "open" in market_status.lower():
+        if PRINT_DEBUG: print ("Market Open")
+        open_f = True
+    if "close" in market_status.lower():
+        if PRINT_DEBUG: print ("Market Closed")
     return (open_f)
 
+
+
+
+
 # store a single quote in a file arranged by expiration date
-# files are named 'YYMMDD.json' where 'YYMMDD' is an option
-# expiration date extracted from the contract name
+# files are named 'SYMBYYMMDD.json' where 'SYMBYYMMDD' is an option
+# symbol and expiration date extracted from the contract name
 def store(quote: dict):
-    exp = contract_name[:10][4:]
-    fname = exp + ".json"
-    fname = os.path.join(DATA_DIR, fname)
+    contract = quote['Contract Name'][:10]
+    fname = contract + ".json"
+    #fname = os.path.join(DATA_DIR, fname)
     with open(fname, 'a') as f:
         json.dump(quote, f)
         f.write('\n')
 
+# return an options quote page from yahoo finance
+def OptionsQuotePage(ticker_symbol, date='', result=None, index=None):
+    OPTION_URL = "https://finance.yahoo.com/quote/" + ticker_symbol + "/options"
+    DATE_SUFFIX = "?date=" + date
+    url = OPTION_URL
+    if date: url += DATE_SUFFIX
+    if PRINT_DEBUG: print (url)
+    driver = webdriver.Chrome()
+    if PRINT_DEBUG: print ("driver loaded")
+    driver.get(url)
+    if PRINT_DEBUG: print ("web page fetched")
+    if result:
+        result[index] = driver
+    return (driver)
+
+# return the underlying stock price
+def underlying(quote_page):
+    price = quote_page.find_element(By.CSS_SELECTOR, 'fin-streamer[data-testid="qsp-price"]')
+    if PRINT_DEBUG: print ("Price", price.text)
+    return (price)
+
+# return all options expiration dates as linux timestamps
+def expirationDates(quote_page):
+    dropdown = quote_page.find_element(By.CSS_SELECTOR, 'div[role="listbox"]')
+    dates = dropdown.find_elements(By.CSS_SELECTOR, 'div[role="option"]')
+    expiration_dates = []
+    for d in dates:
+        exp = d.get_attribute("data-value")
+        if PRINT_DEBUG: print (exp)
+        expiration_dates.append(exp)
+    return (expiration_dates)
+
+# return True column headings have not changed from what is expected
+def columnHeadingsValid(headings_from_website):
+    if headings_from_website == COLUMN_HEADINGS: return (True)
+    else: return (False)
+
+# scrape all out and call contracts at all strike prices
+def allContracts(quote_page):
+    contracts = []
+    tables = quote_page.find_elements(By.CSS_SELECTOR, 'table[class="svelte-12t6atp"]')
+    for t in tables:
+        rows = t.find_elements(By.CSS_SELECTOR, 'tr')
+        hdg = []
+        headings = rows[0].find_elements(By.CSS_SELECTOR, 'th')
+        for h in headings:
+            hdg.append(h.text)
+        if PRINT_DEBUG: print (hdg)
+        if columnHeadingsValid(hdg):
+            for r in rows[1:]:
+                values = []
+                cells = r.find_elements(By.CSS_SELECTOR, 'td')
+                for c in cells:
+                    values.append(c.text)
+                if PRINT_DEBUG: print (values)
+                contracts.append(values)
+    return (contracts)
 
 
 #
@@ -108,28 +164,31 @@ def store(quote: dict):
 # Fetch Options Quotes
 #
 
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+
+
 if __name__ == "__main__":
+    ticker_symbol = 'RMBS'
+    qp = OptionsQuotePage(ticker_symbol)
+    underlying = underlying(qp)
+    expiration_dates = expirationDates(qp)
+    mkt_open = marketOpen(qp)
+    threads = [None] * len(expiration_dates)
+    pages = [None] * len(expiration_dates)
+    for i, exp in enumerate(expiration_dates):
+        threads[i] = threading.Thread(target=OptionsQuotePage, args=('ticker_symbol', exp, pages, i))
+        threads[i].start()
+    for i in range(len(threads)):
+        threads[i].join()
+    for qp in pages:
+        contracts = allContracts(qp)
+        for c in contracts:
+            quote = dict(zip(COLUMN_HEADINGS, c))
+            if PRINT_DEBUG: print (quote)
+            store(quote)
+    
 
-    if not marketOpen():
-        print ("fetch_option_quotes.py - Market Closed")
-    # exit()        ** Until marketOpen is verified **
-    else:
-        print ("fetch_option_quotes.py - Market Open")
-
-
-    exp_dates = options.get_expiration_dates(TICKER)
-    for ex in exp_dates:
-        all = options.get_options_chain(TICKER, ex)
-    calls = all['calls']
-    puts = all['puts']
-    underlying = stock_info.get_live_price(TICKER)
-    time = nowET().strftime('%Y-%m-%d %H:%M:%S')
-    for _, row in calls.iterrows():
-        record = dict(row.to_dict(), **{'type': 'CALL', 'time': time, 'underlying': underlying})
-        store(record)
-    for _, row in puts.iterrows():
-        record = dict(row.to_dict(), **{'type': 'PUT', 'time': time, 'underlying': underlying})
-        store(record)
 
 
 
