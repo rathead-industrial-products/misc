@@ -21,10 +21,15 @@ All times are Eastern in datetime naive format
 # 'Open Interest'       : int       8
 # 'Implied Volatility'  : str       '106.64%'
 #
-# Add when quote fetched
+# Added when quote fetched
+# 'time'                : str       '2024-03-28 15:55:53'   # time when quote was served
+# 'underlying'          : float     61.810001373291016      # underlying stock price at 'time'
+#
+# Derived
 # 'type'                : str       'PUT' | 'CALL'
-# 'time'                : str       '2024-03-28 15:55:53'
-# 'underlying'          : float     61.810001373291016
+# 'time to expiration'  : float     4.23    # time to expiration where .days = fraction of 6.5 hour day left today
+# 'time value'          : float     1.35    # option value minus intrinsic value (if any)
+# 'dist from underlying': float     22.0    # strike price minus underlying stock price (can be pos or neg)
 #
 
 
@@ -52,6 +57,25 @@ tv vs oom vs ttx
 
 '''
 
+"4/18/2024 2:56 PM"
+
+# convert a contract name in the form of 'RMBS240419C00040000'
+# to an expiration date in the form of a datetime
+def expiration_dt(contract_name):
+    exp = contract_name[:10][4:]
+    exp_dt = datetime.datetime.strptime(s, '%Y%m%d')
+    return (exp_dt)
+    
+
+# convert a string of the form '4/1/2024 2:56 PM' to a datetime
+def destringifyDT(s):
+    if s[1]  == '/': s = '0' + s                # convert month to two digits
+    if s[4]  == '/': s = s[:2] + '0' + s[2:]    # convert day to two digits
+    if s[12] == ':': s = s[:10] + '0' + s[10:]  # convert hour to two digits 
+    dt = datetime.datetime.strptime(s, '%m/%d/%Y %I:%M %p')
+    return (dt)
+
+
 # return the file as a list of quotes
 def recall(fname):
     fname = os.path.join(DATA_DIR, fname)
@@ -61,14 +85,15 @@ def recall(fname):
             quotes.append(json.loads(line))
     return (quotes)
 
+
 # return decimal days until expiration where
 # the decimal portion is hours/(6.5 hours in a trading day)
 def timeToExpiration(quote : dict):
     quote_dt = destringifyDT(quote['time'])             # time of quote
-    market_close = quote_dt.replace(hour=16, minute=00) # 4:30 day of quote
+    market_close = quote_dt.replace(hour=16, minute=00) # 4:00 day of quote
     print (quote_dt)
     print (market_close)
-    sec_to_close = (market_close - quote_dt).seconds    # seconds from quote until 4:30
+    sec_to_close = (market_close - quote_dt).seconds    # seconds from quote until 4:00
     exp_dt = expiration_dt(quote['Contract Name'])
     print (quote_dt)
     print (exp_dt)
@@ -93,17 +118,38 @@ def timeValue(quote : dict):
     tv = [round(x, 2) for x in tv]
     return (tv)
 
-# return how far out of the money an option is
+# return how far the strike price is from the underlying stock price
 # this can be a positive or negative number
-def outOfTheMoney(quote : dict):
-    oom = quote['Strike'] - quote['underlying']
-    oom = round(oom, 2)
-    return (oom)
+def distFromUnderlying(quote : dict):
+    dfu = quote['Strike'] - quote['underlying']
+    dfu = round(dfu, 2)
+    return (dfu)
 
+# return the contract type 'PUT' or 'CALL'
+def contractType(quote: dict):
+    if quote['Contract Name'][10] == 'C': return ('CALL')
+    if quote['Contract Name'][10] == 'P': return ('PUT')
+    assert (False, "Indeterminate contract type (not PUT or CALL)")
+
+# return the parameters derived from the raw data
+def derived(quote: dict):
+    quote['type'] = contractType(quote)
+    quote['time to expiration'] = timeToExpiration(quote)
+    quote['time value'] = timeValue(quote)
+    quote['dist from underlying'] = distFromUnderlying(quote)
 
 
 quotes = recall("240517.json")
 for q in quotes[-5:]:
     print (q)
-    print (timeValue(q), outOfTheMoney(q), timeToExpiration(q))
+    print (timeValue(q), distFromUnderlying(q), timeToExpiration(q))
     print ()
+
+
+if __name__ == "__main__":
+    fname = '??'
+    quotes = recall(fname)      # get raw quote data
+    for quote in quotes:
+        derived(quote)              # update quote with derived values
+    # put quotes into panda datastore
+    # do some analysis
