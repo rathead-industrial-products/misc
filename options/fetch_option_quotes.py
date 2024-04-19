@@ -51,28 +51,6 @@ def nowET():
     et = datetime.datetime.now() + datetime.timedelta(hours=3)
     return (et)
 
-# convert a datetime to a string of the form '2024-03-28 15:55:53'
-def stringifyDT(dt):
-    s = dt.strftime('%Y-%m-%d %H:%M:%S')
-    return (s)
-    
-# convert a string in the form '2024-03-28 15:55:53' to a datetime
-def destringifyDT(s):
-    dt = datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
-    return (dt)
-
-# convert a contract name to an expiration date in the form of a datetime
-def expiration_dt(contract_name):
-    yymmdd = contractExpiration(contract_name)
-    s = "20%s-%s-%s 00:00:00" % (yymmdd[:2], yymmdd[2:4], yymmdd[4:])
-    dt = destringifyDT(s)
-    return (dt)
-
-# extract the expiration date in the form 'YYMMDD' from the contract name
-def contractExpiration(contract_name):
-    exp = contract_name[:10][4:]
-    return (exp)
-
 
 # store a single quote in a file arranged by expiration date
 # files are named 'SYMBYYMMDD.json' where 'SYMBYYMMDD' is an option
@@ -85,28 +63,18 @@ def store(quote: dict):
         json.dump(quote, f)
         f.write('\n')
 
-# return an options quote page from yahoo finance
-def OptionsQuotePage(ticker_symbol, date=''):
-    url = "https://finance.yahoo.com/quote/" + ticker_symbol + "/options"
-    date_suffix = "?date=" + date
-    if date: url += date_suffix
-    if PRINT_DEBUG: print (url)
-    driver = webdriver.Chrome()
-    if PRINT_DEBUG: print ("driver loaded")
-    driver.get(url)
-    if PRINT_DEBUG: print ("web page fetched")  
-    return (driver)
 
 # return the underlying stock price, quote time, and market open status
 def underlying(quote_page):
     price = quote_page.find_element(By.CSS_SELECTOR, 'fin-streamer[data-testid="qsp-price"]').text
     market_status = quote_page.find_element(By.CSS_SELECTOR, 'div[slot="marketTimeNotice"]').text   # As of 1:18 PM EDT. Market Open.
-    quote_time = market_status.strip("As of . Market Open Closed") 
+    quote_time = market_status.strip("As of.MarketOpen:close:") 
     open_f = True if "open" in market_status.lower() else False       
     if PRINT_DEBUG: print ("Price", price)
     if PRINT_DEBUG: print ("Market Status", market_status)
     if PRINT_DEBUG: print ("Quote Time", quote_time)
     return ((price, quote_time, open_f))
+
 
 # return true if the market is open
 def marketOpen(quote_page):
@@ -123,10 +91,12 @@ def expirationDates(quote_page):
         expiration_dates.append(exp)
     return (expiration_dates)
 
+
 # return True column headings have not changed from what is expected
 def columnHeadingsValid(headings_from_website):
     if headings_from_website == COLUMN_HEADINGS: return (True)
     else: return (False)
+
 
 # scrape all out and call contracts at all strike prices
 def allContracts(quote_page):
@@ -150,6 +120,19 @@ def allContracts(quote_page):
     return (contracts)
 
 
+# return an options quote page from yahoo finance
+def OptionsQuotePage(ticker_symbol, date=''):
+    url = "https://finance.yahoo.com/quote/" + ticker_symbol + "/options"
+    date_suffix = "?date=" + date
+    if date: url += date_suffix
+    if PRINT_DEBUG: print (url)
+    driver = webdriver.Chrome(options=options)
+    if PRINT_DEBUG: print ("driver loaded")
+    driver.get(url)
+    if PRINT_DEBUG: print ("web page fetched")  
+    return (driver)
+
+
 def threadFetchContracts(ticker_symbol, date, result, idx):
     attempt = 0
     while attempt < RETRY_ATTEMPTS:
@@ -171,7 +154,20 @@ def threadFetchContracts(ticker_symbol, date, result, idx):
 #
 
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
+ 
+options = Options()
+options.add_argument('--headless')
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+#driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+
+#from selenium import webdriver
+#from selenium.webdriver.common.by import By
 
 
 if __name__ == "__main__":
@@ -190,28 +186,27 @@ if __name__ == "__main__":
     qp.quit()
     print ("Market Open") if mkt_open else print ("Market Closed")
     
-    threads = [None] * len(expiration_dates)
-    expirations = [None] * len(expiration_dates)
-    for i, exp in enumerate(expiration_dates):
-        threads[i] = threading.Thread(target=threadFetchContracts, args=(ticker_symbol, exp, expirations, i))
-        threads[i].start()
-    for i in range(len(threads)):
-        threads[i].join()
-    for i, scraped_data in enumerate(expirations):
-        try:
-            ((price, quote_time, open_f), contracts) = scraped_data
-            for c in contracts:
-                quote = dict(zip(COLUMN_HEADINGS, c))
-                quote.update({'time': quote_time, 'underlying': price})
-                #if PRINT_DEBUG: print (quote)
-                store(quote)
-        except TypeError:
-            if PRINT_DEBUG: print ("Nonexistant contracts for expiration", expiration_dates[i])
-
-    if PRINT_DEBUG: print("Execution time", time.time() - start)
-    
-    
-
-
-
-
+    if mkt_open or True:
+        threads = [None] * len(expiration_dates)
+        expirations = [None] * len(expiration_dates)
+        for i, exp in enumerate(expiration_dates):
+            threads[i] = threading.Thread(target=threadFetchContracts, args=(ticker_symbol, exp, expirations, i))
+            threads[i].start()
+        for i in range(len(threads)):
+            threads[i].join()
+        for i, scraped_data in enumerate(expirations):
+            try:
+                ((price, quote_time, open_f), contracts) = scraped_data
+                m = nowET().strftime("%m").lstrip('0')      # month without a leading zero
+                d = nowET().strftime("%d").lstrip('0')      # day without a leading zero
+                y = nowET().strftime("%Y")
+                quote_time = m + '/' + d + '/' + y + ' ' + quote_time[:-4]    # format like 'Last Trade Date (EDT)' in contract
+                print (quote_time)
+                for c in contracts:
+                    quote = dict(zip(COLUMN_HEADINGS, c))
+                    quote.update({'time': quote_time, 'underlying': price})
+                    #if PRINT_DEBUG: print (quote)
+                    store(quote)
+            except TypeError:
+                if PRINT_DEBUG: print ("Nonexistant contracts for expiration", expiration_dates[i])
+    if PRINT_DEBUG: print("Execution time %d seconds" % (int(time.time() - start)))
