@@ -28,7 +28,8 @@ All times are Eastern in datetime naive format
 # Derived
 # 'type'                : str       'PUT' | 'CALL'
 # 'time to expiration'  : float     4.23    # time to expiration where .days = fraction of 6.5 hour day left today
-# 'time value'          : float     1.35    # option value minus intrinsic value (if any)
+# 'time value bid'      : float     1.35    # option value minus intrinsic value (if any)
+# 'time value ask'      : float     1.35    # option value minus intrinsic value (if any)
 # 'dist from underlying': float     22.0    # strike price minus underlying stock price (can be pos or neg)
 #
 
@@ -63,26 +64,34 @@ tv vs oom vs ttx
 # to an expiration date in the form of a datetime
 def expiration_dt(contract_name):
     exp = contract_name[:10][4:]
-    exp_dt = datetime.datetime.strptime(s, '%Y%m%d')
+    exp_dt = datetime.datetime.strptime(exp, '%y%m%d')
     return (exp_dt)
     
 
 # convert a string of the form '4/1/2024 2:56 PM' to a datetime
 def destringifyDT(s):
     if s[1]  == '/': s = '0' + s                # convert month to two digits
-    if s[4]  == '/': s = s[:2] + '0' + s[2:]    # convert day to two digits
-    if s[12] == ':': s = s[:10] + '0' + s[10:]  # convert hour to two digits 
+    if s[4]  == '/': s = s[:3] + '0' + s[3:]    # convert day to two digits
+    if s[12] == ':': s = s[:11] + '0' + s[11:]  # convert hour to two digits 
     dt = datetime.datetime.strptime(s, '%m/%d/%Y %I:%M %p')
     return (dt)
 
 
 # return the file as a list of quotes
 def recall(fname):
-    fname = os.path.join(DATA_DIR, fname)
+    #fname = os.path.join(DATA_DIR, fname)
     quotes = []
     with open(fname, 'r') as f:
         for line in f:
-            quotes.append(json.loads(line))
+            quote = json.loads(line)
+            quote['Strike'] = float(quote['Strike'])
+            quote['Last Price'] = float(quote['Last Price'])
+            quote['Bid'] = float(quote['Bid'])
+            quote['Ask'] = float(quote['Ask'])
+            quote['Change'] = float(quote['Change'])
+            quote['Open Interest'] = int(quote['Open Interest'].replace(',' , ''))
+            quote['underlying'] = float(quote['underlying'])
+            quotes.append(quote)
     return (quotes)
 
 
@@ -129,27 +138,32 @@ def distFromUnderlying(quote : dict):
 def contractType(quote: dict):
     if quote['Contract Name'][10] == 'C': return ('CALL')
     if quote['Contract Name'][10] == 'P': return ('PUT')
-    assert (False, "Indeterminate contract type (not PUT or CALL)")
+    assert False, "Indeterminate contract type (not PUT or CALL)"
 
 # return the parameters derived from the raw data
 def derived(quote: dict):
     quote['type'] = contractType(quote)
     quote['time to expiration'] = timeToExpiration(quote)
-    quote['time value'] = timeValue(quote)
+    tv = timeValue(quote)
+    quote['time value bid'] = tv[0]
+    quote['time value ask'] = tv[1]
     quote['dist from underlying'] = distFromUnderlying(quote)
 
-
+'''
 quotes = recall("240517.json")
 for q in quotes[-5:]:
     print (q)
     print (timeValue(q), distFromUnderlying(q), timeToExpiration(q))
     print ()
+    '''
 
 
 if __name__ == "__main__":
-    fname = '??'
+    fname = 'RMBS240517.json'
     quotes = recall(fname)      # get raw quote data
-    for quote in quotes:
+    for quote in quotes[:1]:
+        print (quote)
         derived(quote)              # update quote with derived values
+        print (quote)
     # put quotes into panda datastore
     # do some analysis
