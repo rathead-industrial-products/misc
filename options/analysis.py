@@ -29,7 +29,8 @@ All times are Eastern in datetime naive format
 # 'type'                : str       'PUT' | 'CALL'
 # 'time to expiration'  : float     4.23    # time to expiration where .days = fraction of 6.5 hour day left today
 # 'time value bid'      : float     1.35    # option value minus intrinsic value (if any)
-# 'time value ask'      : float     1.35    # option value minus intrinsic value (if any)
+# 'time value ask'      : float     1.70    # option value minus intrinsic value (if any)
+# 'spread'              ; float     0.35    # ask - bid
 # 'dist from underlying': float     22.0    # strike price minus underlying stock price (can be pos or neg)
 #
 
@@ -37,7 +38,12 @@ All times are Eastern in datetime naive format
 import datetime
 import json
 import os
-from   fetch_option_quotes import *
+import pandas as pd
+
+HOST = 'SERVER'     # SERVER | MAC
+#HOST = 'MAC'
+DATA_DIR = "/home/mitchell/stock_options/data"
+DISPLAY_COLUMNS = ['Contract Name', 'Strike', 'Bid', 'time value bid', 'Ask', 'time value ask', 'dist from underlying']
 
 #
 # Analyze
@@ -58,8 +64,6 @@ tv vs oom vs ttx
 
 '''
 
-"4/18/2024 2:56 PM"
-
 # convert a contract name in the form of 'RMBS240419C00040000'
 # to an expiration date in the form of a datetime
 def expiration_dt(contract_name):
@@ -77,21 +81,26 @@ def destringifyDT(s):
     return (dt)
 
 
-# return the file as a list of quotes
-def recall(fname):
-    #fname = os.path.join(DATA_DIR, fname)
+# return all json files in the given directory as a list of quotes
+def recall(dir):
+    fnames = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+    print (fnames)
+    json_fnames = [os.path.join(dir, f) for f in fnames if '.json' in f]
+    print (json_fnames)
     quotes = []
-    with open(fname, 'r') as f:
-        for line in f:
-            quote = json.loads(line)
-            quote['Strike'] = float(quote['Strike'])
-            quote['Last Price'] = float(quote['Last Price'])
-            quote['Bid'] = float(quote['Bid'])
-            quote['Ask'] = float(quote['Ask'])
-            quote['Change'] = float(quote['Change'])
-            quote['Open Interest'] = int(quote['Open Interest'].replace(',' , ''))
-            quote['underlying'] = float(quote['underlying'])
-            quotes.append(quote)
+    for jf in json_fnames:
+        print ("Opening file", jf)
+        with open(jf, 'r') as f:
+            for line in f:
+                quote = json.loads(line)
+                quote['Strike'] = float(quote['Strike'])
+                quote['Last Price'] = float(quote['Last Price'])
+                quote['Bid'] = float(quote['Bid'])
+                quote['Ask'] = float(quote['Ask'])
+                quote['Change'] = float(quote['Change'])
+                quote['Open Interest'] = int(quote['Open Interest'].replace(',' , ''))
+                quote['underlying'] = float(quote['underlying'])
+                quotes.append(quote)
     return (quotes)
 
 
@@ -100,16 +109,10 @@ def recall(fname):
 def timeToExpiration(quote : dict):
     quote_dt = destringifyDT(quote['time'])             # time of quote
     market_close = quote_dt.replace(hour=16, minute=00) # 4:00 day of quote
-    print (quote_dt)
-    print (market_close)
     sec_to_close = (market_close - quote_dt).seconds    # seconds from quote until 4:00
     exp_dt = expiration_dt(quote['Contract Name'])
-    print (quote_dt)
-    print (exp_dt)
     days_to_close = (exp_dt - quote_dt).days
     dec_days = (sec_to_close / 3600 / 6.5)
-    print (days_to_close)
-    print (dec_days)
     return (days_to_close + dec_days)
 
 # return (TimeValue(bid), TimeValue(ask))
@@ -118,12 +121,12 @@ def timeValue(quote : dict):
         if quote['type'] == 'PUT':  # out of the money
             tv = (quote['Bid'], quote['Ask'])
         else: # 'CALL'              # in the money
-            tv = (quote['Bid'] - (quote['underlying'] - quote['Strike']), quote['Ask'] - (quote['underlying'] - quote['Strike']))
+            tv = (quote['Bid'] + quote['dist from underlying'], quote['Ask'] + quote['dist from underlying'])
     else:
         if quote['type'] == 'CALL':  # out of the money
             tv = (quote['Bid'], quote['Ask'])
         else: # 'PUT'              # in the money
-            tv = (quote['Bid'] - (quote['underlying'] - quote['Strike']), quote['Ask'] - (quote['underlying'] - quote['Strike']))
+            tv = (quote['Bid'] - quote['dist from underlying'], quote['Ask'] - quote['dist from underlying'])
     tv = [round(x, 2) for x in tv]
     return (tv)
 
@@ -140,30 +143,36 @@ def contractType(quote: dict):
     if quote['Contract Name'][10] == 'P': return ('PUT')
     assert False, "Indeterminate contract type (not PUT or CALL)"
 
-# return the parameters derived from the raw data
-def derived(quote: dict):
+# add some parameters derived from the raw data to the quote
+def addDerivedValues(quote: dict):
     quote['type'] = contractType(quote)
     quote['time to expiration'] = timeToExpiration(quote)
+    quote['dist from underlying'] = distFromUnderlying(quote)
     tv = timeValue(quote)
     quote['time value bid'] = tv[0]
     quote['time value ask'] = tv[1]
-    quote['dist from underlying'] = distFromUnderlying(quote)
-
-'''
-quotes = recall("240517.json")
-for q in quotes[-5:]:
-    print (q)
-    print (timeValue(q), distFromUnderlying(q), timeToExpiration(q))
-    print ()
-    '''
+    quote['spread'] = tv[1] - tv[0]
+  
 
 
 if __name__ == "__main__":
-    fname = 'RMBS240517.json'
-    quotes = recall(fname)      # get raw quote data
-    for quote in quotes[:1]:
-        print (quote)
-        derived(quote)              # update quote with derived values
-        print (quote)
-    # put quotes into panda datastore
-    # do some analysis
+    if HOST == 'SERVER':
+        quotes = recall(DATA_DIR)      # get raw quote data
+    else:
+        quotes = recall('.')
+    for quote in quotes:
+        addDerivedValues(quote)              # update quote with derived values
+    df = pd.DataFrame(quotes)
+    df = df[DISPLAY_COLUMNS]
+    print (df.sort_values(['time value bid'], ascending=False).head(10))
+
+    #
+    # sort on spread
+    #       does spread correlate with any other parmeters?
+    #
+    # sort on time_value_bid
+    #       what is the best contract to sell?
+    #
+
+
+
