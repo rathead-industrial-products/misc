@@ -41,7 +41,7 @@ import os
 import pandas as pd
 
 HOST = 'SERVER'     # SERVER | MAC
-#HOST = 'MAC'
+HOST = 'MAC'
 DATA_DIR = "/home/mitchell/stock_options/data"
 DISPLAY_COLUMNS = ['Contract Name', 'Strike', 'Bid', 'time value bid', 'Ask', 'time value ask', 'dist from underlying']
 
@@ -84,12 +84,9 @@ def destringifyDT(s):
 # return all json files in the given directory as a list of quotes
 def recall(dir):
     fnames = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
-    print (fnames)
     json_fnames = [os.path.join(dir, f) for f in fnames if '.json' in f]
-    print (json_fnames)
     quotes = []
     for jf in json_fnames:
-        print ("Opening file", jf)
         with open(jf, 'r') as f:
             for line in f:
                 quote = json.loads(line)
@@ -163,8 +160,14 @@ if __name__ == "__main__":
     for quote in quotes:
         addDerivedValues(quote)              # update quote with derived values
     df = pd.DataFrame(quotes)
-    df = df[DISPLAY_COLUMNS]
-    print (df.sort_values(['time value bid'], ascending=False).head(10))
+    #df = df[DISPLAY_COLUMNS]
+    #print (df.sort_values(['time value bid'], ascending=False).head(10))
+
+    if HOST == 'MAC':
+        import matplotlib.pyplot as plt
+        df.plot(x="dist from underlying", y="time value bid", kind="scatter")
+        plt.show()
+
 
     #
     # sort on spread
