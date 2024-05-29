@@ -136,8 +136,12 @@ def distFromUnderlying(quote : dict):
 
 # return the contract type 'PUT' or 'CALL'
 def contractType(quote: dict):
-    if quote['Contract Name'][10] == 'C': return ('CALL')
-    if quote['Contract Name'][10] == 'P': return ('PUT')
+    try:
+        if quote['Contract Name'][10] == 'C': return ('CALL')
+        if quote['Contract Name'][10] == 'P': return ('PUT')
+    except:
+        print (quote)
+    
     assert False, "Indeterminate contract type (not PUT or CALL)"
 
 # add some parameters derived from the raw data to the quote
@@ -149,6 +153,12 @@ def addDerivedValues(quote: dict):
     quote['time value bid'] = tv[0]
     quote['time value ask'] = tv[1]
     quote['spread'] = tv[1] - tv[0]
+
+# return True if the time value is negative. [How can that ever happen??]
+def negTimeValue(quote: dict):
+    if quote['time value bid'] < 0 or quote['time value ask'] < 0: return (True)
+    return (False)
+
   
 
 
@@ -157,16 +167,36 @@ if __name__ == "__main__":
         quotes = recall(DATA_DIR)      # get raw quote data
     else:
         quotes = recall('.')
+
     for quote in quotes:
         addDerivedValues(quote)              # update quote with derived values
-    df = pd.DataFrame(quotes)
+    # filter suspicious quotes
+    # bid or ask == 0
+    #ba_zero = [q for q in quotes if not q['Bid'] == 0.0 or q['Ask'] == 0.0]
+    # postive time value
+    #neg_tv = [q for q in ba_zero if q['time value bid'] > 0 and q['time value ask'] > 0]
+    #recent = [q for q in neg_tv if q['Contract Name'].startswith("RMBS240517")]
+    #tv_high = [q for q in recent if q['time value bid'] > 20]
+    #print (len(quotes), len(ba_zero), len(neg_tv), len(tv_high))
+
+    recent = [q for q in quotes if q['Contract Name'].startswith("RMBS240517")]
+    calls  = [q for q in recent if 'C' in q['Contract Name']]
+    neg_tv = [q for q in calls if q['time value ask'] < 0.5]
+    for c in neg_tv[-2:]:
+        for i in c.items():
+            print (i)
+        print()
+        
     #df = df[DISPLAY_COLUMNS]
     #print (df.sort_values(['time value bid'], ascending=False).head(10))
 
+
     if HOST == 'MAC':
         import matplotlib.pyplot as plt
-        df.plot(x="dist from underlying", y="time value bid", kind="scatter")
+        df = pd.DataFrame(calls)
+        df.plot(x="dist from underlying", y="time value ask", kind="scatter")
         plt.show()
+
 
 
     #

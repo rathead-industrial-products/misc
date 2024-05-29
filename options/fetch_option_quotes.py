@@ -58,7 +58,7 @@ def nowET():
 def store(quote: dict):
     contract = quote['Contract Name'][:10]
     fname = contract + ".json"
-    fname = os.path.join(DATA_DIR, fname)
+    #fname = os.path.join(DATA_DIR, fname)
     with open(fname, 'a') as f:
         json.dump(quote, f)
         f.write('\n')
