@@ -90,14 +90,17 @@ def recall(dir):
         with open(jf, 'r') as f:
             for line in f:
                 quote = json.loads(line)
-                quote['Strike'] = float(quote['Strike'])
-                quote['Last Price'] = float(quote['Last Price'])
-                quote['Bid'] = float(quote['Bid'])
-                quote['Ask'] = float(quote['Ask'])
-                quote['Change'] = float(quote['Change'])
-                quote['Open Interest'] = int(quote['Open Interest'].replace(',' , ''))
-                quote['underlying'] = float(quote['underlying'])
-                quotes.append(quote)
+                try:
+                    quote['Strike'] = float(quote['Strike'])
+                    quote['Last Price'] = float(quote['Last Price'])             
+                    quote['Bid'] = float(quote['Bid'])
+                    quote['Ask'] = float(quote['Ask'])
+                    quote['Change'] = float(quote['Change'])
+                    quote['Open Interest'] = int(quote['Open Interest'].replace(',' , ''))
+                    quote['underlying'] = float(quote['underlying'])
+                    quotes.append(quote)
+                except:
+                    pass    # filters '-' in fields that should have valid values
     return (quotes)
 
 
@@ -107,9 +110,11 @@ def timeToExpiration(quote : dict):
     quote_dt = destringifyDT(quote['time'])             # time of quote
     market_close = quote_dt.replace(hour=16, minute=00) # 4:00 day of quote
     sec_to_close = (market_close - quote_dt).seconds    # seconds from quote until 4:00
-    exp_dt = expiration_dt(quote['Contract Name'])
+    exp_dt = expiration_dt(quote['Contract Name']).replace(hour=23) # midnight-ish on expiration date
     days_to_close = (exp_dt - quote_dt).days
     dec_days = (sec_to_close / 3600 / 6.5)
+    ttx = days_to_close + dec_days
+    ttx = round(ttx, 1)
     return (days_to_close + dec_days)
 
 # return (TimeValue(bid), TimeValue(ask))
@@ -131,7 +136,7 @@ def timeValue(quote : dict):
 # this can be a positive or negative number
 def distFromUnderlying(quote : dict):
     dfu = quote['Strike'] - quote['underlying']
-    dfu = round(dfu, 2)
+    dfu = round(dfu, 1)
     return (dfu)
 
 # return the contract type 'PUT' or 'CALL'
@@ -166,7 +171,10 @@ if __name__ == "__main__":
     if HOST == 'SERVER':
         quotes = recall(DATA_DIR)      # get raw quote data
     else:
-        quotes = recall('.')
+        quotes = recall('.')           # set working directory before running
+
+    recent = [q for q in quotes if q['Contract Name'].startswith("RMBS240621")]
+    #quotes = recent
 
     for quote in quotes:
         addDerivedValues(quote)              # update quote with derived values
@@ -179,13 +187,12 @@ if __name__ == "__main__":
     #tv_high = [q for q in recent if q['time value bid'] > 20]
     #print (len(quotes), len(ba_zero), len(neg_tv), len(tv_high))
 
-    recent = [q for q in quotes if q['Contract Name'].startswith("RMBS240517")]
-    calls  = [q for q in recent if 'C' in q['Contract Name']]
-    neg_tv = [q for q in calls if q['time value ask'] < 0.5]
-    for c in neg_tv[-2:]:
-        for i in c.items():
-            print (i)
-        print()
+    
+    calls  = [q for q in quotes if 'C' in q['Contract Name']]
+    pos_tv = [q for q in calls if q['time value bid'] > 0]
+    spread = [q for q in calls if q['spread'] < 5 and q['spread'] >= 0]
+    dist   = [q for q in pos_tv if abs(q['dist from underlying']) <= 1]
+    ttx    = [q for q in dist if q['time to expiration'] > 0 and q['time to expiration'] <= 30]
         
     #df = df[DISPLAY_COLUMNS]
     #print (df.sort_values(['time value bid'], ascending=False).head(10))
@@ -193,8 +200,17 @@ if __name__ == "__main__":
 
     if HOST == 'MAC':
         import matplotlib.pyplot as plt
-        df = pd.DataFrame(calls)
-        df.plot(x="dist from underlying", y="time value ask", kind="scatter")
+        df = pd.DataFrame(ttx)
+        #fig = plt.figure()
+        #ax = fig.add_subplot(projection='3d')
+        #ax.scatter(df["dist from underlying"], df["time to expiration"], df["spread"])
+        #ax.set_xlabel('dist from underlying')
+        #ax.set_ylabel('time to expiration')
+        #ax.set_zlabel('spread')
+        #df.plot(x="time to expiration", y="time value bid", kind="scatter")
+        df.plot(x="time to expiration", y="time value bid", z="spread", kind="scatter", projection='3d')
+        #fig, ax = plt.subplots()
+        #ax.hist(df["time to expiration"])
         plt.show()
 
 
