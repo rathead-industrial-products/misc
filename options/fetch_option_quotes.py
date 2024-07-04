@@ -186,7 +186,7 @@ if __name__ == "__main__":
     qp.quit()
     print ("Market Open") if mkt_open else print ("Market Closed")
     
-    if mkt_open or True:
+    if mkt_open:
         threads = [None] * len(expiration_dates)
         expirations = [None] * len(expiration_dates)
         for i, exp in enumerate(expiration_dates):
